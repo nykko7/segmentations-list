@@ -48,8 +48,9 @@ export const columns: ColumnDef<Series>[] = [
     id: "actions",
     header: "Acciones",
     accessorKey: "actions",
+
     cell: ({ row }) => {
-      const course = row.original;
+      // const serie = row.original;
 
       return <DataTableRowActions row={row} />;
     },

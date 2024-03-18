@@ -4,6 +4,9 @@ import { Inter } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 
+import { SessionProvider } from "@/components/context/session-context";
+import { APP_TITLE } from "@/constants";
+import { validateRequest } from "@/lib/auth/validate-request";
 import { TRPCReactProvider } from "@/trpc/react";
 
 const inter = Inter({
@@ -12,22 +15,26 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "FONDEF 10337",
+  title: APP_TITLE,
   description: "Segmentations List",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await validateRequest();
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`dark font-sans ${inter.variable}`}>
         <TRPCReactProvider>
-          {children}
-          <Toaster />
+          <SessionProvider value={session}>
+            {children}
+            <Toaster />
+          </SessionProvider>
         </TRPCReactProvider>
       </body>
     </html>

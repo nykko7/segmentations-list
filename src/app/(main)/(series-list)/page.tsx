@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 
 import { api } from "@/trpc/server";
+import { PageHeader } from "../_components/PageHeader";
 import { columns, type Series } from "./_components/table/columns";
 import { DataTable } from "./_components/table/data-table";
 
@@ -29,16 +30,19 @@ export default async function Home() {
   const medicalCheckCount = series.length;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center">
-      <section className="max-w-screen-lg">
-        <div className="mb-3 flex items-end justify-between text-3xl font-semibold">
-          <h1 className="text-3xl">Lista de estudios</h1>
-          <p className="text-xl text-muted-foreground">
-            {medicalCheckCount} estudios
+    <>
+      <PageHeader
+        title="Lista de exámenes"
+        description="Lista de exámenes disponibles para su revisión"
+        rightComponent={
+          <p className="text-2xl font-medium text-muted-foreground">
+            {medicalCheckCount} exámenes
           </p>
-        </div>
+        }
+      />
+      <section>
         <DataTable columns={columns} data={series} />
       </section>
-    </main>
+    </>
   );
 }
