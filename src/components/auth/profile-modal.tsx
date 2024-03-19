@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserSquare } from "lucide-react";
 import { useState } from "react";
-import { ProfileForm } from "./profile-form";
+import { ProfileForm } from "./forms/profile-form";
 
 type ProfileModalProps = {
   children?: React.ReactNode;

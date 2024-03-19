@@ -1,7 +1,7 @@
 "use client";
 
-import { FormError } from "@/components/auth/form-error";
-import { FormSuccess } from "@/components/auth/form-success";
+import { FormError } from "@/components/auth/forms/form-error";
+import { FormSuccess } from "@/components/auth/forms/form-success";
 
 import { Button } from "@/components/ui/button";
 import {
