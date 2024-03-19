@@ -21,7 +21,6 @@ export default async function Home() {
       <PageHeader
         title="Lista de usuarios"
         description="Gestiona los usuarios de tu plataforma"
-        withSeparator
         // rightComponent={}
       />
       <section>{/* <DataTable columns={columns} data={users} /> */}</section>
