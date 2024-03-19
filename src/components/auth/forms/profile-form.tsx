@@ -183,7 +183,6 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                         {...field}
                         autoComplete="current-password"
                         placeholder="******"
-                        type="password"
                         disabled={isPending}
                       />
                     </FormControl>
@@ -202,7 +201,6 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                         {...field}
                         autoComplete="new-password"
                         placeholder="******"
-                        type="password"
                         disabled={isPending}
                       />
                     </FormControl>
@@ -221,7 +219,6 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                         {...field}
                         autoComplete="confirm-new-password"
                         placeholder="******"
-                        type="password"
                         disabled={isPending}
                       />
                     </FormControl>
