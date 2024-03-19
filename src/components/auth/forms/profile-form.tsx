@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import MultipleSelector, {
   type Option,
 } from "@/components/ui/multiple-selector";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useCurrentUser } from "@/hooks/user/use-current-user";
 import { updateProfile } from "@/lib/auth/actions/update-profile";
 import { userProfileParamsSchema, type UserRoles } from "@/server/db/schema";
@@ -178,7 +179,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                   <FormItem>
                     <FormLabel>Contraseña actual</FormLabel>
                     <FormControl>
-                      <Input
+                      <PasswordInput
                         {...field}
                         autoComplete="current-password"
                         placeholder="******"
@@ -197,7 +198,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                   <FormItem>
                     <FormLabel>Nueva contraseña</FormLabel>
                     <FormControl>
-                      <Input
+                      <PasswordInput
                         {...field}
                         autoComplete="new-password"
                         placeholder="******"
@@ -216,7 +217,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                   <FormItem>
                     <FormLabel>Confirmar nueva contraseña</FormLabel>
                     <FormControl>
-                      <Input
+                      <PasswordInput
                         {...field}
                         autoComplete="confirm-new-password"
                         placeholder="******"

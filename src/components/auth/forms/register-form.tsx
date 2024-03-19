@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { register } from "@/lib/auth/actions/register";
 import { userRegisterSchema } from "@/server/db/schema";
 import { useState, useTransition } from "react";
@@ -126,7 +127,7 @@ export const RegisterForm = () => {
                 <FormItem>
                   <FormLabel htmlFor="password">Contraseña</FormLabel>
                   <FormControl>
-                    <Input
+                    <PasswordInput
                       {...field}
                       placeholder="******"
                       type="password"
@@ -147,7 +148,7 @@ export const RegisterForm = () => {
                     Confirmar contraseña
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasswordInput
                       {...field}
                       placeholder="******"
                       type="password"

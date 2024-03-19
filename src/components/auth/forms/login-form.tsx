@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { login } from "@/lib/auth/actions/login";
 import { cn } from "@/lib/utils";
 import { userLoginSchema } from "@/server/db/schema";
@@ -98,31 +99,33 @@ export const LoginForm = () => {
             <FormField
               name="password"
               control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor="password">Contraseña</FormLabel>
-                  <FormControl>
-                    <Input
-                      id="password"
-                      {...field}
-                      placeholder="******"
-                      type="password"
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  {/* <Button
-                    asChild
-                    variant={"link"}
-                    className="px-0 font-normal"
-                    size={"sm"}
-                  >
-                    <Link href="/auth/reset-password">
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </Button> */}
-                </FormItem>
-              )}
+              render={({ field }) => {
+                return (
+                  <FormItem>
+                    <FormLabel htmlFor="password">Contraseña</FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        id="password"
+                        {...field}
+                        placeholder="******"
+                        type="password"
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    {/* <Button
+              asChild
+              variant={"link"}
+              className="px-0 font-normal"
+              size={"sm"}
+            >
+              <Link href="/auth/reset-password">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </Button> */}
+                  </FormItem>
+                );
+              }}
             />
           </div>
           <FormError message={error ?? urlError} />

@@ -168,19 +168,27 @@ export function DataTable<TData, TValue>({
                             </h3>
                             <ul className="list-inside list-disc">
                               <li>
-                                <span className="font-bold">Study UUID:</span>{" "}
-                                1.3.51.0.1.1.172.19.3.128.3051489.3051428
+                                <span className="font-bold">
+                                  Radiólogo asignado:
+                                </span>{" "}
+                                Roberto Gómez
                               </li>
-                              <li>
-                                <span className="font-bold">Serie UUID:</span>{" "}
-                                1.3.12.2.1107.5.1.4.83504.30000022071212080050700029635
-                              </li>
-
                               <li>
                                 <span className="font-bold">
-                                  Radiologo asignado:
+                                  Número de lesiones encontradas:
                                 </span>{" "}
-                                John Doe
+                                3
+                              </li>
+                              <li>
+                                <span className="font-bold">
+                                  Tiempo de anotación:
+                                </span>{" "}
+                                30 minutos
+                              </li>
+                              <li>
+                                <span className="font-bold">Revisado por:</span>{" "}
+                                {/* woman name */}
+                                Maria Bolaños
                               </li>
                             </ul>
                             <h3 className="text-lg font-bold">
