@@ -245,11 +245,11 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                       hidePlaceholderWhenSelected
                       inputProps={{ name: field.name }}
                       maxSelected={rolesOptions.length}
-                      emptyIndicator={
-                        <p className="text-center leading-10 text-muted-foreground">
-                          No existen roles con los criterios de busqueda
-                        </p>
-                      }
+                      // emptyIndicator={
+                      //   <p className="text-center leading-10 text-muted-foreground">
+                      //     No existen roles con los criterios de busqueda
+                      //   </p>
+                      // }
                     />
                   </FormControl>
                   <FormMessage />

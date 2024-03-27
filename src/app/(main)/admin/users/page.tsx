@@ -1,29 +1,28 @@
-import { type Option } from "@/components/ui/multiple-selector";
+import { api } from "@/trpc/server";
+import { unstable_noStore as noStore } from "next/cache";
 import { PageHeader } from "../../_components/PageHeader";
 
-export default async function Home() {
-  const OPTIONS: Option[] = [
-    { label: "nextjs", value: "Nextjs" },
-    { label: "React", value: "react" },
-    { label: "Remix", value: "remix" },
-    { label: "Vite", value: "vite" },
-    { label: "Nuxt", value: "nuxt" },
-    { label: "Vue", value: "vue" },
-    { label: "Svelte", value: "svelte" },
-    { label: "Angular", value: "angular" },
-    { label: "Ember", value: "ember", disable: true },
-    { label: "Gatsby", value: "gatsby", disable: true },
-    { label: "Astro", value: "astro" },
-  ];
+export default async function UsersListPage() {
+  noStore();
+  const users = await api.user.getAll.query();
 
   return (
     <>
       <PageHeader
         title="Lista de usuarios"
-        description="Gestiona los usuarios de tu plataforma"
+        description="Gestiona los usuarios de la plataforma"
         // rightComponent={}
       />
-      <section>{/* <DataTable columns={columns} data={users} /> */}</section>
+      <section>
+        {/* <DataTable columns={columns} data={users} /> */}
+        <ul>
+          {users.map((user) => (
+            <li key={user.id}>
+              <p>{user.email}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
     </>
   );
 }

@@ -100,3 +100,16 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     },
   });
 });
+
+export const adminProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.session || !ctx.user?.roles.includes("ADMIN")) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return next({
+    ctx: {
+      // infers the `session` and `user` as non-nullable
+      session: { ...ctx.session },
+      user: { ...ctx.user },
+    },
+  });
+});

@@ -5,7 +5,7 @@ import { PageHeader } from "../_components/PageHeader";
 import { columns, type Series } from "./_components/table/columns";
 import { DataTable } from "./_components/table/data-table";
 
-export default async function Home() {
+export default async function SeriesList() {
   noStore();
 
   const medicalChecks = await api.medicalCheck.getAll.query();

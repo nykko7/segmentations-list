@@ -10,7 +10,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { insertSerieParams, type Serie } from "@/server/db/schema";
+import {
+  insertSerieParams,
+  type NewSerieParams,
+  type Serie,
+} from "@/server/db/schema";
 import { api } from "@/trpc/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -69,7 +73,7 @@ const SerieForm = ({ serie, closeModal }: Props) => {
   //   }
   // };
 
-  const onSubmit = (values: z.infer<typeof insertSerieParams>) => {
+  const onSubmit = (values: NewSerieParams) => {
     console.log(values);
   };
 
