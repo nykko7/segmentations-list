@@ -29,12 +29,12 @@ export const users = createTable(
   }),
 );
 
+// export const usersRelations = relations(users, ({ many }) => ({
+//   accounts: many(keys),
+// }));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(keys),
-}));
 
 export const keys = createTable("key", {
   id: varchar("id", {
@@ -105,6 +105,20 @@ export const userRegisterSchema = z
     }
   });
 
+export const updateUserSchema = z.object({
+  id: z.string(),
+  email: z.string().email("Debes ingresar un correo válido"),
+  name: z.string().min(1, "Debes ingresar un nombre"),
+  lastName: z.string().min(1, "Debes ingresar un apellido"),
+  roles: z.array(z.string()).min(1, "Debes seleccionar al menos un rol"),
+  password: z.optional(
+    z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  ),
+  confirmPassword: z.optional(
+    z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  ),
+});
+
 export const userResetPasswordSchema = z.object({
   email: z.string().email("Debes ingresar un correo válido"),
   // .refine(emailDomainValidation, {
@@ -163,7 +177,7 @@ export const userProfileParamsSchema = userProfileBaseSchema
       roles: z.array(rolesParams).min(1, "Debes seleccionar al menos un rol"),
     }),
   )
-  .superRefine(({ password, newPassword, confirmNewPassword }, ctx) => {
+  .superRefine(({ password, newPassword, confirmNewPassword, roles }, ctx) => {
     if (password && !newPassword) {
       ctx.addIssue({
         code: "custom",

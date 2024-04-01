@@ -41,7 +41,7 @@ declare module "lucia" {
   }
 }
 interface DatabaseSessionAttributes {}
-interface DatabaseUserAttributes extends Omit<DbUser, "hashedPassword"> {}
+interface DatabaseUserAttributes extends Omit<DbUser, "password"> {}
 
 export const getCurrentUser = async () => {
   const session = await validateRequest();

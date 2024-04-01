@@ -51,7 +51,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
   }
 
   const rolesOptions: RoleOption[] = [
-    { value: "RADIOLOGIST", label: "Radiologo", disable: true, fixed: true },
+    { value: "RADIOLOGIST", label: "Radiólogo", disable: true, fixed: true },
     { value: "ML_ENGINEER", label: "Ingeniero ML" },
     { value: "ADMIN", label: "Administrador" },
   ];
