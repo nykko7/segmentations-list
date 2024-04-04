@@ -2,7 +2,6 @@
 
 import { FormError } from "@/components/auth/forms/form-error";
 import { FormSuccess } from "@/components/auth/forms/form-success";
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -12,54 +11,57 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import MultipleSelector, {
   type Option,
 } from "@/components/ui/multiple-selector";
 import { PasswordInput } from "@/components/ui/password-input";
-import { useCurrentUser } from "@/hooks/user/use-current-user";
 import { updateProfile } from "@/lib/auth/actions/update-profile";
-import { userProfileParamsSchema, type UserRoles } from "@/server/db/schema";
+import {
+  type updateUserSchema,
+  userProfileParamsSchema,
+  UserRolesLabel,
+} from "@/server/db/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@radix-ui/react-collapsible";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { type z } from "zod";
 
-interface ProfileFormProps {
-  closeModal: () => void;
+type UserRoles = "ADMIN" | "RADIOLOGIST" | "ML_ENGINEER";
+
+interface RoleOption extends Option {
+  value: UserRoles;
 }
 
-export function ProfileForm({ closeModal }: ProfileFormProps) {
+export function UpdateUserProfileForm({
+  user,
+  closeModal,
+}: {
+  user: updateUserSchema;
+  closeModal: () => void;
+}) {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isOpen, setIsOpen] = useState(false);
-  const user = useCurrentUser();
-
   const [isPending, startTransition] = useTransition();
-
   const router = useRouter();
 
-  interface RoleOption extends Option {
-    value: UserRoles;
-  }
-
   const rolesOptions: RoleOption[] = [
-    { value: "RADIOLOGIST", label: "Radiólogo", disable: true, fixed: true },
-    { value: "ML_ENGINEER", label: "Ingeniero ML" },
-    { value: "ADMIN", label: "Administrador" },
+    { value: "RADIOLOGIST", label: UserRolesLabel.RADIOLOGIST },
+    { value: "ML_ENGINEER", label: UserRolesLabel.ML_ENGINEER },
+    { value: "ADMIN", label: UserRolesLabel.ADMIN },
   ];
 
   const form = useForm<z.infer<typeof userProfileParamsSchema>>({
     resolver: zodResolver(userProfileParamsSchema),
     defaultValues: {
-      id: user?.id ?? "",
+      id: user.id,
       name: user?.name ?? "",
       lastName: user?.lastName ?? "",
       email: user?.email ?? "",
@@ -88,15 +90,15 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
 
   const onSubmit = async (values: z.infer<typeof userProfileParamsSchema>) => {
     startTransition(() => {
-      const roles = values.roles?.map((rolOption) => rolOption.value);
-
-      updateProfile({ ...values, roles })
+      updateProfile({
+        ...values,
+        roles: values.roles?.map((rolOption) => rolOption.value),
+      })
         .then(async (data) => {
           if (data.error) {
             setError(data.error);
             setSuccess(undefined);
-          }
-          if (data.success) {
+          } else if (data.success) {
             router.refresh();
             setSuccess(data.success);
             setError(undefined);
@@ -104,7 +106,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
         })
         .catch(() => {
           setSuccess(undefined);
-          setError("Algo salio mal");
+          setError("Algo salió mal durante la actualización");
         });
     });
   };
@@ -165,7 +167,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
           />
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center space-x-4">
-              <h4 className=" font-semibold">¿Deseas cambiar tu contraseña?</h4>
+              <h4 className=" font-semibold">¿Deseas cambiar la contraseña?</h4>
               <CollapsibleTrigger asChild>
                 <Button variant={"ghost"}>
                   <span>{isOpen ? "No" : "Si"}</span>
@@ -173,24 +175,6 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contraseña actual</FormLabel>
-                    <FormControl>
-                      <PasswordInput
-                        {...field}
-                        autoComplete="current-password"
-                        placeholder="******"
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="newPassword"
@@ -229,7 +213,6 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
               />
             </CollapsibleContent>
           </Collapsible>
-
           <FormField
             control={form.control}
             name="roles"
@@ -242,7 +225,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
                       value={field.value}
                       onChange={field.onChange}
                       options={rolesOptions}
-                      placeholder="Selecciona tus roles"
+                      placeholder="Selecciona los roles"
                       hidePlaceholderWhenSelected
                       inputProps={{ name: field.name }}
                       maxSelected={rolesOptions.length}
@@ -261,7 +244,6 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
         </div>
         <FormError message={error} />
         <FormSuccess message={success} />
-
         <div className="flex justify-end gap-1">
           <Button
             type="button"
@@ -272,7 +254,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
           </Button>
           <Button
             type="submit"
-            // disabled={isCreating || isUpdating || !isValid}
+            // disabled={isPending || isUpdating || !isValid}
             disabled={isPending}
           >
             {`Edita${isPending ? "ndo..." : "r"}`}

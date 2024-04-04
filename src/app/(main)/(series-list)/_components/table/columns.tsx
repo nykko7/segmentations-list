@@ -18,6 +18,7 @@ export type Series = {
 export const columns: ColumnDef<Series>[] = [
   {
     accessorKey: "patient_code",
+    // header: "Accession Number",
     header: "Patient Code",
   },
   {

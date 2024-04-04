@@ -13,19 +13,40 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { userProfileSchema } from "@/server/db/schema";
-import CourseModal from "../CourseModal";
+import { api } from "@/trpc/react";
+import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { useRouter } from "next/navigation";
+import UserModal from "../UserModal";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
+  asDropdown?: boolean;
 }
 
 export function DataTableRowActions<TData>({
   row,
+  asDropdown = false,
 }: DataTableRowActionsProps<TData>) {
   const user = userProfileSchema.parse(row.original);
 
-  return (
+  const utils = api.useUtils();
+  const router = useRouter();
+
+  const { mutate: deleteCourse } = api.user.deleteUser.useMutation({
+    onSuccess: async () => {
+      await utils.user.getAll.invalidate();
+      router.refresh();
+    },
+  });
+
+  return asDropdown ? (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -35,18 +56,63 @@ export function DataTableRowActions<TData>({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-        <CourseModal course={user}>
+        <UserModal user={user}>
           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
             <ClipboardPenLine className="mr-2 h-5 w-5" />
             Editar usuario
           </DropdownMenuItem>
-        </CourseModal>
+        </UserModal>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="bg-destructive text-destructive-foreground">
-          <Trash2 className="mr-2 h-5 w-5" />
-          Eliminar
+        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+          <ConfirmDialog
+            onConfirm={() => deleteCourse({ id: user.id })}
+            asChild
+          >
+            <div className="flex">
+              <Trash2 className="mr-2 h-5 w-5" />
+              Eliminar
+            </div>
+          </ConfirmDialog>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  ) : (
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <UserModal user={user}>
+              <Button
+                variant={"ghost"}
+                size={"icon"}
+                className="h-8 w-8 rounded-lg "
+              >
+                <ClipboardPenLine className="h-4 w-4" />
+              </Button>
+            </UserModal>
+          </TooltipTrigger>
+          <TooltipContent>Editar Usuario</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <ConfirmDialog
+              onConfirm={() => deleteCourse({ id: user.id })}
+              asChild
+            >
+              <Button
+                variant={"ghost"}
+                size={"icon"}
+                className="h-8 w-8 rounded-lg "
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </ConfirmDialog>
+          </TooltipTrigger>
+          <TooltipContent>Eliminar Usuario</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </>
   );
 }

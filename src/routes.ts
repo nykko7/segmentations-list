@@ -1,4 +1,4 @@
-import { type UserRoles } from "@/server/db/schema";
+import { UserRolesLabel, type UserRoles } from "@/server/db/schema";
 import { BarChart, List, type LucideIcon } from "lucide-react";
 
 type routesPerRole = Record<
@@ -27,7 +27,7 @@ export const routesPerRole: routesPerRole = {
   //   order: 0,
   // },
   ADMIN: {
-    title: "Administrador",
+    title: UserRolesLabel.ADMIN,
     routes: [
       // {
       //   icon: Layout,
@@ -43,7 +43,7 @@ export const routesPerRole: routesPerRole = {
     order: 1,
   },
   RADIOLOGIST: {
-    title: "Radiólogo",
+    title: UserRolesLabel.RADIOLOGIST,
     routes: [
       {
         icon: List,
@@ -54,7 +54,7 @@ export const routesPerRole: routesPerRole = {
     order: 0,
   },
   ML_ENGINEER: {
-    title: "Ingeniero de ML",
+    title: UserRolesLabel.ML_ENGINEER,
     routes: [
       {
         icon: BarChart,

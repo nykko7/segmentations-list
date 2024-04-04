@@ -18,6 +18,7 @@ type Props = {
   cancelButtonText?: string;
   onConfirm: () => void;
   onCancel?: () => void;
+  asChild?: boolean;
 };
 
 export const ConfirmDialog = ({
@@ -28,10 +29,11 @@ export const ConfirmDialog = ({
   confirmButtonText = "Continuar",
   onConfirm,
   onCancel,
+  asChild = false,
 }: Props) => {
   return (
     <AlertDialog>
-      <AlertDialogTrigger>{children}</AlertDialogTrigger>
+      <AlertDialogTrigger asChild={asChild}>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

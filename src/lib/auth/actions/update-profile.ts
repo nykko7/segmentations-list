@@ -19,7 +19,7 @@ export const updateProfile = async (
     };
   }
 
-  const dbUser = await api.user.getUserById.query({ id: user.id });
+  const dbUser = await api.user.getUserById.query({ id: values.id });
 
   if (!dbUser) {
     return {

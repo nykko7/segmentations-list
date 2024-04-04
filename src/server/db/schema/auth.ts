@@ -7,6 +7,26 @@ import { createTable } from "../utils";
 
 export type UserRoles = "ADMIN" | "RADIOLOGIST" | "ML_ENGINEER";
 
+export const UserRolesLabel: Record<UserRoles, string> = {
+  ADMIN: "Administrador",
+  RADIOLOGIST: "Radiólogo",
+  ML_ENGINEER: "Ingeniero de ML",
+};
+
+// const rolesSchema = z.enum(["ADMIN", "RADIOLOGIST", "ML_ENGINEER"]);
+const rolesSchema = z.enum<UserRoles, readonly [UserRoles, ...UserRoles[]]>([
+  "ADMIN",
+  "ML_ENGINEER",
+  "RADIOLOGIST",
+]);
+
+const rolesParams = z.object({
+  label: z.string(),
+  value: rolesSchema,
+  disable: z.boolean().optional(),
+  fixed: z.boolean().optional(),
+});
+
 export const users = createTable(
   "user",
   {
@@ -80,6 +100,33 @@ export const userLoginSchema = z.object({
 //   return email.endsWith("@gmail.com");
 // };
 
+export const userRegisterParamsSchema = z
+  .object({
+    email: z.string().email("Debes ingresar un correo válido"),
+    // .refine(emailDomainValidation, {
+    //   message: "Debes ingresar un correo de Gmail (@gmail.com)",
+    // }),
+    password: z
+      .string()
+      .min(6, "La contraseña debe tener al menos 6 caracteres"),
+    confirmPassword: z
+      .string()
+      .min(6, "La contraseña debe tener al menos 6 caracteres"),
+    name: z.string().min(1, "Debes ingresar un nombre"),
+    lastName: z.string().min(1, "Debes ingresar un apellido"),
+
+    roles: z.array(rolesParams).min(1, "Debes seleccionar al menos un rol"),
+  })
+  .superRefine(({ confirmPassword, password }, ctx) => {
+    if (confirmPassword !== password) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Las contraseñas no coinciden",
+        path: ["confirmPassword"],
+      });
+    }
+  });
+
 export const userRegisterSchema = z
   .object({
     email: z.string().email("Debes ingresar un correo válido"),
@@ -94,6 +141,8 @@ export const userRegisterSchema = z
       .min(6, "La contraseña debe tener al menos 6 caracteres"),
     name: z.string().min(1, "Debes ingresar un nombre"),
     lastName: z.string().min(1, "Debes ingresar un apellido"),
+
+    roles: z.array(rolesSchema).min(1, "Debes seleccionar al menos un rol"),
   })
   .superRefine(({ confirmPassword, password }, ctx) => {
     if (confirmPassword !== password) {
@@ -104,20 +153,6 @@ export const userRegisterSchema = z
       });
     }
   });
-
-export const updateUserSchema = z.object({
-  id: z.string(),
-  email: z.string().email("Debes ingresar un correo válido"),
-  name: z.string().min(1, "Debes ingresar un nombre"),
-  lastName: z.string().min(1, "Debes ingresar un apellido"),
-  roles: z.array(z.string()).min(1, "Debes seleccionar al menos un rol"),
-  password: z.optional(
-    z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-  ),
-  confirmPassword: z.optional(
-    z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-  ),
-});
 
 export const userResetPasswordSchema = z.object({
   email: z.string().email("Debes ingresar un correo válido"),
@@ -145,19 +180,8 @@ export const userNewPasswordSchema = z
     }
   });
 
-const rolesSchema = z.enum<UserRoles, readonly [UserRoles, ...UserRoles[]]>([
-  "ADMIN",
-  "ML_ENGINEER",
-  "RADIOLOGIST",
-]);
-
-const rolesParams = z.object({
-  label: z.string(),
-  value: rolesSchema,
-  disable: z.boolean().optional(),
-});
-
 export const userProfileBaseSchema = z.object({
+  id: z.string(),
   name: z.optional(z.string()),
   lastName: z.optional(z.string()),
   roles: z.array(rolesSchema).min(1, "Debes seleccionar al menos un rol"),
@@ -218,6 +242,7 @@ export const userProfileParamsSchema = userProfileBaseSchema
 export const userProfileSchema = userProfileBaseSchema
   .merge(
     z.object({
+      id: z.string(),
       roles: z.array(rolesSchema).min(1, "Debes seleccionar al menos un rol"),
     }),
   )
@@ -254,3 +279,8 @@ export const userProfileSchema = userProfileBaseSchema
       });
     }
   });
+
+export type updateUserSchema = z.infer<typeof userProfileSchema>;
+export type updateUserParamsSchema = z.infer<typeof userProfileParamsSchema>;
+
+export const userIdSchema = userProfileBaseSchema.pick({ id: true });

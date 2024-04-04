@@ -97,7 +97,7 @@ export const UserAvatar = ({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
 
-        <DropdownMenuLabel className="flex cursor-pointer items-center hover:bg-destructive">
+        <DropdownMenuLabel className="flex cursor-pointer items-center transition hover:bg-destructive/70">
           <ConfirmDialog
             onConfirm={handleSignOut}
             title="¿Estás seguro que deseas cerrar sesión?"
