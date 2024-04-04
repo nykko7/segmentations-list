@@ -29,7 +29,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`theme-custom font-sans ${inter.variable}`}>
+      <body className={`dark font-sans ${inter.variable}`}>
         <TRPCReactProvider>
           <SessionProvider value={session}>
             {children}

@@ -168,27 +168,15 @@ export function DataTable<TData, TValue>({
                             </h3>
                             <ul className="list-inside list-disc">
                               <li>
-                                <span className="font-bold">
-                                  Radiólogo asignado:
-                                </span>{" "}
+                                <span className="font-bold">Revisado por:</span>{" "}
+                                {/* woman name */}
                                 Roberto Gómez
                               </li>
                               <li>
                                 <span className="font-bold">
-                                  Número de lesiones encontradas:
+                                  Número total de lesiones encontradas:
                                 </span>{" "}
                                 3
-                              </li>
-                              <li>
-                                <span className="font-bold">
-                                  Tiempo de anotación:
-                                </span>{" "}
-                                30 minutos
-                              </li>
-                              <li>
-                                <span className="font-bold">Revisado por:</span>{" "}
-                                {/* woman name */}
-                                Maria Bolaños
                               </li>
                             </ul>
                             <h3 className="text-lg font-bold">
