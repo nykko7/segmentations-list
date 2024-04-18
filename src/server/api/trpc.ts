@@ -10,8 +10,13 @@ import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { uncachedValidateRequest } from "@/lib/auth/validate-request";
+import { getToken } from "@/lib/auth/keycloak/utils";
+import {
+  uncachedValidateRequest,
+  updateSession,
+} from "@/lib/auth/validate-request";
 import { db } from "@/server/db";
+import console from "console";
 
 /**
  * 1. CONTEXT
@@ -88,15 +93,61 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.user) {
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  if (!ctx.session || !ctx.user || !ctx.session.keycloak) {
+    console.error("No session or user");
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
+
+  const keycloak = ctx.session.keycloak;
+
+  // Refresh token if it's about to expire in 30 seconds
+  if (keycloak.accessTokenExpiresAt < new Date(Date.now() + 1000 * 30)) {
+    if (keycloak.refreshTokenExpiresAt < new Date()) {
+      console.error("Refresh token expired");
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+
+    // Refresh token
+    try {
+      const newToken = await getToken({
+        refreshToken: keycloak.refreshToken,
+        grantType: "refresh_token",
+      });
+
+      ctx.session.keycloak = {
+        ...keycloak,
+        accessToken: newToken.accessToken,
+        refreshToken: newToken.refreshToken,
+        accessTokenExpiresAt: newToken.accessTokenExpiresAt,
+        refreshTokenExpiresAt: newToken.refreshTokenExpiresAt,
+      };
+
+      await updateSession({
+        newSession: ctx.session,
+        userId: ctx.user.id,
+        sessionId: ctx.session.id,
+      });
+    } catch (e) {
+      console.error("Error refreshing token", e);
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+  }
+
+  // try {
+  //   await validateAccessToken(ctx.session.keycloak.accessToken);
+  // } catch {
+  //   throw new TRPCError({ code: "FORBIDDEN" });
+  // }
   return next({
     ctx: {
       // infers the `session` and `user` as non-nullable
       session: { ...ctx.session },
       user: { ...ctx.user },
+      headers: {
+        ...ctx.headers,
+        Authorization: `Bearer ${keycloak.accessToken}`,
+      },
     },
   });
 });

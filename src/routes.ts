@@ -1,5 +1,5 @@
 import { UserRolesLabel, type UserRoles } from "@/server/db/schema";
-import { BarChart, List, type LucideIcon } from "lucide-react";
+import { BarChart, List, LucideFileLock, type LucideIcon } from "lucide-react";
 
 type routesPerRole = Record<
   UserRoles,
@@ -49,6 +49,11 @@ export const routesPerRole: routesPerRole = {
         icon: List,
         label: "Lista de exámenes",
         href: "/",
+      },
+      {
+        icon: LucideFileLock,
+        label: "Lista privada de exámenes",
+        href: "/private-list",
       },
     ],
     order: 0,

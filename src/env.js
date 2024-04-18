@@ -12,11 +12,18 @@ export const env = createEnv({
       .url()
       .refine(
         (str) => !str.includes("YOUR_MYSQL_URL_HERE"),
-        "You forgot to change the default URL"
+        "You forgot to change the default URL",
       ),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    KEYCLOAK_SERVER_URL: z.string(),
+    KEYCLOAK_REALM: z.string(),
+    KEYCLOAK_CLIENT_ID: z.string(),
+    KEYCLOAK_CLIENT_SECRET: z.string(),
+    KEYCLOAK_ADMIN_USER: z.string(),
+    KEYCLOAK_ADMIN_PASSWORD: z.string(),
+    KEYCLOAK_REGISTRATION_TOKEN: z.string().optional(),
   },
 
   /**
@@ -35,6 +42,13 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    KEYCLOAK_CLIENT_SECRET: process.env.KEYCLOAK_CLIENT_SECRET,
+    KEYCLOAK_CLIENT_ID: process.env.KEYCLOAK_CLIENT_ID,
+    KEYCLOAK_REGISTRATION_TOKEN: process.env.KEYCLOAK_REGISTRATION_TOKEN,
+    KEYCLOAK_REALM: process.env.KEYCLOAK_REALM,
+    KEYCLOAK_SERVER_URL: process.env.KEYCLOAK_SERVER_URL,
+    KEYCLOAK_ADMIN_USER: process.env.KEYCLOAK_ADMIN_USER,
+    KEYCLOAK_ADMIN_PASSWORD: process.env.KEYCLOAK_ADMIN_PASSWORD,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

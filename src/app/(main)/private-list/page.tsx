@@ -8,7 +8,7 @@ import { DataTable } from "./_components/table/data-table";
 export default async function SeriesList() {
   noStore();
 
-  const medicalChecks = await api.medicalCheck.getAll.query();
+  const medicalChecks = await api.medicalCheck.getAllPrivate.query();
 
   const series = medicalChecks.reduce((acc: Series[], medicalCheck) => {
     medicalCheck.studies.forEach((study) => {

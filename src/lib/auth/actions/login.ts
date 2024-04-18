@@ -9,6 +9,7 @@ import { api } from "@/trpc/server";
 import { Scrypt } from "lucia";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getToken } from "../keycloak/utils";
 
 export const login = async (
   values: z.infer<typeof userLoginSchema>,
@@ -67,13 +68,22 @@ export const login = async (
   //       "Se ha enviado un correo de verificación. Revisa tu bandeja de entrada",
   //   };
   // }
-  const session = await lucia.createSession(existingUser.id, {});
+
+  const keycloakToken = await getToken({
+    username: existingUser.email,
+    password,
+  });
+
+  const session = await lucia.createSession(existingUser.id, {
+    keycloak: keycloakToken,
+  });
+
   const sessionCookie = lucia.createSessionCookie(session.id);
+
   cookies().set(
     sessionCookie.name,
     sessionCookie.value,
     sessionCookie.attributes,
   );
-
   return redirect(callbackUrl ?? redirects.afterLogin);
 };

@@ -37,3 +37,28 @@ export const uncachedValidateRequest = async (): Promise<
 };
 
 export const validateRequest = cache(uncachedValidateRequest);
+
+export const updateSession = async ({
+  sessionId,
+  userId,
+  newSession,
+}: {
+  sessionId: string;
+  userId: string;
+  newSession: Session;
+}) => {
+  await lucia.invalidateSession(sessionId);
+
+  const session = await lucia.createSession(
+    userId,
+    { ...newSession },
+    { sessionId },
+  );
+
+  const sessionCookie = lucia.createSessionCookie(session.id);
+  cookies().set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes,
+  );
+};

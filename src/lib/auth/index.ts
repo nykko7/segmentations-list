@@ -2,13 +2,18 @@ import { db } from "@/server/db";
 import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle";
 import { sessions, users, type User as DbUser } from "../../server/db/schema";
 
+import { env } from "@/env";
 import { Lucia } from "lucia";
 import { validateRequest } from "./validate-request";
 
 const adapter = new DrizzlePostgreSQLAdapter(db, sessions, users);
 
 export const lucia = new Lucia(adapter, {
-  // getSessionAttributes: (attributes) => {},
+  getSessionAttributes: (attributes) => {
+    return {
+      keycloak: attributes.keycloak,
+    };
+  },
 
   getUserAttributes: (attributes) => {
     return {
@@ -19,6 +24,7 @@ export const lucia = new Lucia(adapter, {
       roles: attributes.roles,
       createdAt: attributes.createdAt,
       updatedAt: attributes.updatedAt,
+      keycloakId: attributes.keycloakId,
     };
   },
   sessionCookie: {
@@ -27,7 +33,7 @@ export const lucia = new Lucia(adapter, {
     expires: false,
     attributes: {
       // set to `true` when using HTTPS
-      secure: process.env.NODE_ENV === "production",
+      secure: env.NODE_ENV === "production",
     },
   },
 });
@@ -40,7 +46,14 @@ declare module "lucia" {
     DatabaseUserAttributes: DatabaseUserAttributes;
   }
 }
-interface DatabaseSessionAttributes {}
+interface DatabaseSessionAttributes {
+  keycloak: {
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpiresAt: Date;
+    refreshTokenExpiresAt: Date;
+  };
+}
 interface DatabaseUserAttributes extends Omit<DbUser, "password"> {}
 
 export const getCurrentUser = async () => {

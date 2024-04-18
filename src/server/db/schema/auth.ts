@@ -33,7 +33,7 @@ export const users = createTable(
     id: text("id").primaryKey(),
     name: varchar("name", { length: 255 }),
     lastName: varchar("lastName", { length: 255 }),
-    email: varchar("email", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
 
     password: varchar("password", { length: 255 }),
 
@@ -41,6 +41,7 @@ export const users = createTable(
       .$type<UserRoles[]>()
       .notNull()
       .default(["RADIOLOGIST"]),
+    keycloakId: varchar("keycloak_id", { length: 255 }).notNull().default(""),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -85,6 +86,7 @@ export const sessions = createTable(
       withTimezone: true,
       mode: "date",
     }).notNull(),
+    keycloak: json("keycloak").notNull().default({}),
   },
   (t) => ({
     userIdx: index("user_idx").on(t.userId),
