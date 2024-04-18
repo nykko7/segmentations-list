@@ -6,7 +6,6 @@ import {
   type Credentials,
   type GrantTypes,
 } from "@keycloak/keycloak-admin-client/lib/utils/auth";
-import { TRPCError } from "@trpc/server";
 
 export const getToken = async ({
   username,
@@ -52,29 +51,61 @@ export const getToken = async ({
   }
 };
 
-export const validateAccessToken = async (token: string) => {
+export const invalidateToken = async (token: string) => {
   try {
-    const userInfoFetch = await fetch(
-      `${env.KEYCLOAK_SERVER_URL}/realms/${env.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+    const response = await fetch(
+      `${env.KEYCLOAK_SERVER_URL}/realms/${env.KEYCLOAK_REALM}/protocol/openid-connect/logout`,
       {
+        method: "POST",
         headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
           Authorization: `Bearer ${token}`,
         },
-        cache: "no-cache",
         body: new URLSearchParams({
           client_id: env.KEYCLOAK_CLIENT_ID,
           client_secret: env.KEYCLOAK_CLIENT_SECRET,
+          refresh_token: token,
           grant_type: "client_credentials",
         }),
+        cache: "no-cache",
       },
     );
-    if (!userInfoFetch.ok) {
-      console.log(userInfoFetch.status);
-      console.log(userInfoFetch.statusText);
-      throw new TRPCError({ code: "FORBIDDEN" });
+    if (!response.ok) {
+      console.log(response.status);
+      console.log(response.statusText);
+      throw new Error("Failed to invalidate session");
     }
+
+    console.log("Session invalidated successfully");
   } catch (error) {
-    console.error("Error validating token", error);
+    console.error("Error invalidating session", error);
     throw error;
   }
 };
+
+// export const validateAccessToken = async (token: string) => {
+//   try {
+//     const userInfoFetch = await fetch(
+//       `${env.KEYCLOAK_SERVER_URL}/realms/${env.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//         cache: "no-cache",
+//         body: new URLSearchParams({
+//           client_id: env.KEYCLOAK_CLIENT_ID,
+//           client_secret: env.KEYCLOAK_CLIENT_SECRET,
+//           grant_type: "client_credentials",
+//         }),
+//       },
+//     );
+//     if (!userInfoFetch.ok) {
+//       console.log(userInfoFetch.status);
+//       console.log(userInfoFetch.statusText);
+//       throw new TRPCError({ code: "FORBIDDEN" });
+//     }
+//   } catch (error) {
+//     console.error("Error validating token", error);
+//     throw error;
+//   }
+// };

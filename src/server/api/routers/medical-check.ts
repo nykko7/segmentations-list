@@ -8,7 +8,7 @@ import { TRPCError } from "@trpc/server";
 
 export const medicalCheckRouter = createTRPCRouter({
   // prefix: t.procedure.input(callable).query(async (args) => handler(args)),
-  getAll: publicProcedure.query(async ({}) => {
+  getAllPublic: publicProcedure.query(async ({}) => {
     const res = await fetch(
       "https://segmai.scian.cl/gateway_api/segmentation_manager/segmentation_assistant/medical_checks",
     );
@@ -26,13 +26,35 @@ export const medicalCheckRouter = createTRPCRouter({
       "https://segmai.scian.cl/gateway_api/core/api/v1/segmentation_assistant/medical_checks",
       {
         headers: {
-          Authorization: ctx.headers.Authorization,
+          Authorization: `Bearer ${ctx.session.keycloak.accessToken}`,
         },
         cache: "no-cache",
       },
     );
 
+    const keycloak = ctx.session.keycloak;
+
+    const accessTokenExpiresMsLeft =
+      new Date(keycloak.accessTokenExpiresAt).getTime() - Date.now();
+
+    const refreshTokenExpiresMsLeft =
+      new Date(keycloak.refreshTokenExpiresAt).getTime() - Date.now();
+
+    console.log(
+      "Access token expires in: ",
+      accessTokenExpiresMsLeft / 1000,
+      "seconds",
+    );
+
+    console.log(
+      "Refresh token expires in: ",
+      refreshTokenExpiresMsLeft / 1000,
+      "seconds",
+    );
+
     if (!res.ok) {
+      console.log(res.status);
+      console.log(res.statusText);
       if (res.status === 401 || res.status === 403) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }

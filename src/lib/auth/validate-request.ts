@@ -1,3 +1,6 @@
+"use server";
+import "server-only";
+
 import { lucia } from "@/lib/auth";
 import type { Session, User } from "lucia";
 import { cookies } from "next/headers";
@@ -49,16 +52,12 @@ export const updateSession = async ({
 }) => {
   await lucia.invalidateSession(sessionId);
 
-  const session = await lucia.createSession(
-    userId,
-    { ...newSession },
-    { sessionId },
-  );
+  await lucia.createSession(userId, { ...newSession }, { sessionId });
 
-  const sessionCookie = lucia.createSessionCookie(session.id);
-  cookies().set(
-    sessionCookie.name,
-    sessionCookie.value,
-    sessionCookie.attributes,
-  );
+  // const sessionCookie = lucia.createSessionCookie(session.id);
+  // cookies().set(
+  //   sessionCookie.name,
+  //   sessionCookie.value,
+  //   sessionCookie.attributes,
+  // );
 };

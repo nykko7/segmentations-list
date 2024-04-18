@@ -101,15 +101,39 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
   const keycloak = ctx.session.keycloak;
 
+  const accessTokenExpiresMsLeft =
+    new Date(keycloak.accessTokenExpiresAt).getTime() - Date.now();
+
+  const refreshTokenExpiresMsLeft =
+    new Date(keycloak.refreshTokenExpiresAt).getTime() - Date.now();
+
+  console.log(
+    "Access token expires in: ",
+    accessTokenExpiresMsLeft / 1000,
+    "seconds",
+  );
+
+  console.log(
+    "Refresh token expires at: ",
+    refreshTokenExpiresMsLeft / 1000,
+    "seconds",
+  );
+
   // Refresh token if it's about to expire in 30 seconds
-  if (keycloak.accessTokenExpiresAt < new Date(Date.now() + 1000 * 30)) {
-    if (keycloak.refreshTokenExpiresAt < new Date()) {
+  if (
+    new Date(keycloak.accessTokenExpiresAt) < new Date(Date.now() + 1000 * 30)
+  ) {
+    if (
+      new Date(keycloak.refreshTokenExpiresAt) <
+      new Date(Date.now() + 1000 * 30)
+    ) {
       console.error("Refresh token expired");
       throw new TRPCError({ code: "FORBIDDEN" });
     }
 
     // Refresh token
     try {
+      console.log("Refreshing token");
       const newToken = await getToken({
         refreshToken: keycloak.refreshToken,
         grantType: "refresh_token",
@@ -128,6 +152,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
         userId: ctx.user.id,
         sessionId: ctx.session.id,
       });
+      console.log("Token refreshed");
     } catch (e) {
       console.error("Error refreshing token", e);
       throw new TRPCError({ code: "FORBIDDEN" });
@@ -146,7 +171,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       user: { ...ctx.user },
       headers: {
         ...ctx.headers,
-        Authorization: `Bearer ${keycloak.accessToken}`,
       },
     },
   });

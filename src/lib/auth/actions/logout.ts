@@ -4,6 +4,7 @@ import { redirects } from "@/constants";
 import { lucia } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { invalidateToken } from "../keycloak/utils";
 import { validateRequest } from "../validate-request";
 
 export const logout = async ({ redirectTo }: { redirectTo?: string }) => {
@@ -14,7 +15,11 @@ export const logout = async ({ redirectTo }: { redirectTo?: string }) => {
     };
   }
   await lucia.invalidateSession(session.id);
+
+  await invalidateToken(session.keycloak.refreshToken);
+  // await invalidateToken(session.keycloak.accessToken);
   const sessionCookie = lucia.createBlankSessionCookie();
+
   cookies().set(
     sessionCookie.name,
     sessionCookie.value,
