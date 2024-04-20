@@ -25,9 +25,7 @@ export const medicalCheckRouter = createTRPCRouter({
     const res = await fetch(
       "https://segmai.scian.cl/gateway_api/core/api/v1/segmentation_assistant/medical_checks",
       {
-        headers: {
-          Authorization: `Bearer ${ctx.session.keycloak.accessToken}`,
-        },
+        headers: ctx.headers,
         cache: "no-cache",
       },
     );

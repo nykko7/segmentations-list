@@ -171,6 +171,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       user: { ...ctx.user },
       headers: {
         ...ctx.headers,
+        Authorization: `Bearer ${ctx.session.keycloak.accessToken}`,
       },
     },
   });
