@@ -1,8 +1,8 @@
-import { UserRolesLabel, type UserRoles } from "@/server/db/schema";
+import { UserRolesLabel, type UserRole } from "@/server/db/schema";
 import { BarChart, List, LucideFileLock, type LucideIcon } from "lucide-react";
 
 type routesPerRole = Record<
-  UserRoles,
+  UserRole,
   {
     title: string;
     routes: {

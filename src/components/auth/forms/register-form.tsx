@@ -39,6 +39,7 @@ export const RegisterForm = () => {
       name: "",
       lastName: "",
       confirmPassword: "",
+      roles: ["RADIOLOGIST"],
     },
   });
 

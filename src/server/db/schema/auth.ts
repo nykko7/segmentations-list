@@ -5,16 +5,16 @@ import { index, json, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { createTable } from "../utils";
 
-export type UserRoles = "ADMIN" | "RADIOLOGIST" | "ML_ENGINEER";
+export type UserRole = "ADMIN" | "RADIOLOGIST" | "ML_ENGINEER";
 
-export const UserRolesLabel: Record<UserRoles, string> = {
+export const UserRolesLabel: Record<UserRole, string> = {
   ADMIN: "Administrador",
   RADIOLOGIST: "Radiólogo",
   ML_ENGINEER: "Ingeniero de ML",
 };
 
 // const rolesSchema = z.enum(["ADMIN", "RADIOLOGIST", "ML_ENGINEER"]);
-const rolesSchema = z.enum<UserRoles, readonly [UserRoles, ...UserRoles[]]>([
+const rolesSchema = z.enum<UserRole, readonly [UserRole, ...UserRole[]]>([
   "ADMIN",
   "ML_ENGINEER",
   "RADIOLOGIST",
@@ -37,10 +37,7 @@ export const users = createTable(
 
     password: varchar("password", { length: 255 }),
 
-    roles: json("roles")
-      .$type<UserRoles[]>()
-      .notNull()
-      .default(["RADIOLOGIST"]),
+    roles: json("roles").$type<UserRole[]>().notNull().default(["RADIOLOGIST"]),
     keycloakId: varchar("keycloak_id", { length: 255 }).notNull().default(""),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -196,6 +193,26 @@ export const userProfileBaseSchema = z.object({
     z.string().min(6, "Debe tener al menos 6 caracteres"),
   ),
 });
+
+export const updateUserParamsSchema = userProfileBaseSchema
+  .merge(
+    z.object({
+      roles: z.array(rolesParams).min(1, "Debes seleccionar al menos un rol"),
+    }),
+  )
+  .superRefine(({ newPassword, confirmNewPassword }, ctx) => {
+    if (
+      newPassword &&
+      confirmNewPassword &&
+      newPassword !== confirmNewPassword
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Las contraseñas no coinciden",
+        path: ["confirmNewPassword"],
+      });
+    }
+  });
 
 export const userProfileParamsSchema = userProfileBaseSchema
   .merge(

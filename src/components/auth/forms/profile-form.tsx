@@ -26,7 +26,7 @@ import MultipleSelector, {
 import { PasswordInput } from "@/components/ui/password-input";
 import { useCurrentUser } from "@/hooks/user/use-current-user";
 import { updateProfile } from "@/lib/auth/actions/update-profile";
-import { userProfileParamsSchema, type UserRoles } from "@/server/db/schema";
+import { userProfileParamsSchema, type UserRole } from "@/server/db/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -47,7 +47,7 @@ export function ProfileForm({ closeModal }: ProfileFormProps) {
   const router = useRouter();
 
   interface RoleOption extends Option {
-    value: UserRoles;
+    value: UserRole;
   }
 
   const rolesOptions: RoleOption[] = [

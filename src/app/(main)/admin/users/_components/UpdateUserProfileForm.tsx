@@ -18,8 +18,8 @@ import MultipleSelector, {
 import { PasswordInput } from "@/components/ui/password-input";
 import { updateProfile } from "@/lib/auth/actions/update-profile";
 import {
+  updateUserParamsSchema,
   type updateUserSchema,
-  userProfileParamsSchema,
   UserRolesLabel,
 } from "@/server/db/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,14 +58,14 @@ export function UpdateUserProfileForm({
     { value: "ADMIN", label: UserRolesLabel.ADMIN },
   ];
 
-  const form = useForm<z.infer<typeof userProfileParamsSchema>>({
-    resolver: zodResolver(userProfileParamsSchema),
+  const form = useForm<z.infer<typeof updateUserParamsSchema>>({
+    resolver: zodResolver(updateUserParamsSchema),
     defaultValues: {
       id: user.id,
       name: user?.name ?? "",
       lastName: user?.lastName ?? "",
       email: user?.email ?? "",
-      password: "",
+      // password: "",
       newPassword: "",
       confirmNewPassword: "",
       roles: user?.roles
@@ -88,12 +88,15 @@ export function UpdateUserProfileForm({
     }
   }, [isOpen, form]);
 
-  const onSubmit = async (values: z.infer<typeof userProfileParamsSchema>) => {
+  const onSubmit = async (values: z.infer<typeof updateUserParamsSchema>) => {
     startTransition(() => {
-      updateProfile({
-        ...values,
-        roles: values.roles?.map((rolOption) => rolOption.value),
-      })
+      updateProfile(
+        {
+          ...values,
+          roles: values.roles?.map((rolOption) => rolOption.value),
+        },
+        true,
+      )
         .then(async (data) => {
           if (data.error) {
             setError(data.error);
@@ -244,6 +247,10 @@ export function UpdateUserProfileForm({
         </div>
         <FormError message={error} />
         <FormSuccess message={success} />
+        <code>
+          <pre>{JSON.stringify(form.formState.errors, null, 2)}</pre>
+        </code>
+
         <div className="flex justify-end gap-1">
           <Button
             type="button"

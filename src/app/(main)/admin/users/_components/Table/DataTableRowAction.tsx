@@ -19,10 +19,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { userProfileSchema } from "@/server/db/schema";
+import { deleteUser } from "@/lib/auth/actions/delete-user";
+import { type userIdSchema, userProfileSchema } from "@/server/db/schema";
 import { api } from "@/trpc/react";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { useRouter } from "next/navigation";
+import { type z } from "zod";
 import UserModal from "../UserModal";
 
 interface DataTableRowActionsProps<TData> {
@@ -39,12 +41,17 @@ export function DataTableRowActions<TData>({
   const utils = api.useUtils();
   const router = useRouter();
 
-  const { mutate: deleteCourse } = api.user.deleteUser.useMutation({
-    onSuccess: async () => {
-      await utils.user.getAll.invalidate();
-      router.refresh();
-    },
-  });
+  // const { mutate: deleteCourse } = api.user.deleteUser.useMutation({
+  //   onSuccess: async () => {
+  //     await utils.user.getAll.invalidate();
+  //     router.refresh();
+  //   },
+  // });
+  const onDelete = async ({ id: userId }: z.infer<typeof userIdSchema>) => {
+    await deleteUser({ id: userId });
+    await utils.user.getAll.invalidate();
+    router.refresh();
+  };
 
   return asDropdown ? (
     <DropdownMenu>
@@ -64,10 +71,7 @@ export function DataTableRowActions<TData>({
         </UserModal>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          <ConfirmDialog
-            onConfirm={() => deleteCourse({ id: user.id })}
-            asChild
-          >
+          <ConfirmDialog onConfirm={() => onDelete({ id: user.id })} asChild>
             <div className="flex">
               <Trash2 className="mr-2 h-5 w-5" />
               Eliminar
@@ -97,10 +101,7 @@ export function DataTableRowActions<TData>({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <ConfirmDialog
-              onConfirm={() => deleteCourse({ id: user.id })}
-              asChild
-            >
+            <ConfirmDialog onConfirm={() => onDelete({ id: user.id })} asChild>
               <Button
                 variant={"ghost"}
                 size={"icon"}

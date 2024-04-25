@@ -8,10 +8,13 @@ import { users, type userProfileSchema } from "@/server/db/schema";
 import { api } from "@/trpc/server";
 import { eq } from "drizzle-orm";
 import { Scrypt } from "lucia";
+import { updateUser } from "../keycloak/utils";
 
 export const updateProfile = async (
   values: z.infer<typeof userProfileSchema>,
+  isAdminUpdate = false,
 ) => {
+  const userNewPassword = values.newPassword;
   const user = await getCurrentUser();
   if (!user) {
     return {
@@ -35,7 +38,7 @@ export const updateProfile = async (
     }
   }
 
-  if (values.newPassword && !values.password) {
+  if (!isAdminUpdate && values.newPassword && !values.password) {
     return {
       error: "Debes ingresar tu contraseña actual",
     };
@@ -74,21 +77,18 @@ export const updateProfile = async (
     //   };
   }
 
-  if (
-    values.password &&
-    values.newPassword &&
-    values.confirmNewPassword &&
-    dbUser.password
-  ) {
-    const passwordsMatch = await new Scrypt().verify(
-      dbUser.password,
-      values.password,
-    );
+  if (values.newPassword && values.confirmNewPassword && dbUser.password) {
+    if (!isAdminUpdate && values.password) {
+      const passwordsMatch = await new Scrypt().verify(
+        dbUser.password,
+        values.password,
+      );
 
-    if (!passwordsMatch) {
-      return {
-        error: "La contraseña actual es incorrecta",
-      };
+      if (!passwordsMatch) {
+        return {
+          error: "La contraseña actual es incorrecta",
+        };
+      }
     }
 
     const hashedPassword = await new Scrypt().hash(values.newPassword);
@@ -100,7 +100,7 @@ export const updateProfile = async (
 
   if (values.roles && !values.roles.includes("RADIOLOGIST")) {
     return {
-      error: "No puedes quitarte el rol de radiólogo",
+      error: "No puedes quitar el rol de radiólogo",
     };
   }
 
@@ -110,6 +110,15 @@ export const updateProfile = async (
       ...values,
     })
     .where(eq(users.id, dbUser.id));
+
+  await updateUser(
+    values.id,
+    values.name,
+    values.lastName,
+    values.email,
+    userNewPassword,
+    values.roles,
+  );
 
   return {
     success: "Configuración actualizada",

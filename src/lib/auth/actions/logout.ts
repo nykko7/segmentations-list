@@ -17,7 +17,11 @@ export const logout = async ({ redirectTo }: { redirectTo?: string }) => {
   await lucia.invalidateSession(session.id);
 
   // Invalidate keycloak token
-  await invalidateToken(session.keycloak.refreshToken);
+  try {
+    await invalidateToken(session.keycloak.refreshToken);
+  } catch (e) {
+    console.error("El token de keycloak no pudo ser invalidado", e);
+  }
   // await invalidateToken(session.keycloak.accessToken);
   const sessionCookie = lucia.createBlankSessionCookie();
 

@@ -71,8 +71,16 @@ export const login = async (
 
   const keycloakToken = await getToken({
     username: existingUser.email,
-    password,
+    password: password,
+    // username: "nperez_prueba",
+    // password: "nperez",
   });
+
+  if (!keycloakToken) {
+    return {
+      error: "Error al obtener token de Keycloak",
+    };
+  }
 
   const session = await lucia.createSession(existingUser.id, {
     keycloak: keycloakToken,

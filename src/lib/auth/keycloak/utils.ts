@@ -1,4 +1,4 @@
-import "server-only";
+"use server";
 
 import { env } from "@/env";
 import {
@@ -6,6 +6,9 @@ import {
   type Credentials,
   type GrantTypes,
 } from "@keycloak/keycloak-admin-client/lib/utils/auth";
+
+import { type UserRole } from "@/server/db/schema";
+import KcAdminClient from "@keycloak/keycloak-admin-client";
 
 export const getToken = async ({
   username,
@@ -47,7 +50,7 @@ export const getToken = async ({
     };
   } catch (error) {
     console.error("Error getting token", error);
-    throw error;
+    return null;
   }
 };
 
@@ -109,3 +112,212 @@ export const invalidateToken = async (token: string) => {
 //     throw error;
 //   }
 // };
+
+export const registerUser = async (
+  username: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  email: string,
+  roles?: UserRole[],
+) => {
+  const keycloakAdmin = new KcAdminClient();
+
+  keycloakAdmin.setConfig({
+    baseUrl: env.KEYCLOAK_SERVER_URL,
+    realmName: env.KEYCLOAK_REALM,
+  });
+
+  await keycloakAdmin.auth({
+    username: env.KEYCLOAK_ADMIN_USERNAME,
+    password: env.KEYCLOAK_ADMIN_PASSWORD,
+    grantType: "password",
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+    scopes: ["openid"],
+  });
+
+  const newUser = await keycloakAdmin.users.create({
+    username,
+    email,
+    enabled: true,
+    firstName,
+    lastName,
+    emailVerified: true,
+    credentials: [
+      {
+        type: "password",
+        value: password,
+        temporary: false,
+      },
+    ],
+  });
+
+  await setUserRoles(newUser.id, roles ?? []);
+
+  await invalidateToken(keycloakAdmin.refreshToken!);
+
+  return newUser;
+};
+
+// get user by email
+export const getUserByEmail = async (email: string) => {
+  const keycloakAdmin = new KcAdminClient();
+
+  keycloakAdmin.setConfig({
+    baseUrl: env.KEYCLOAK_SERVER_URL,
+    realmName: env.KEYCLOAK_REALM,
+  });
+
+  await keycloakAdmin.auth({
+    username: env.KEYCLOAK_ADMIN_USERNAME,
+    password: env.KEYCLOAK_ADMIN_PASSWORD,
+    grantType: "password",
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+    scopes: ["openid"],
+  });
+
+  const user = await keycloakAdmin.users.find({
+    email,
+  });
+
+  await invalidateToken(keycloakAdmin.refreshToken!);
+
+  return user[0] ?? null;
+};
+
+export const deleteUser = async (userId: string) => {
+  const keycloakAdmin = new KcAdminClient();
+
+  keycloakAdmin.setConfig({
+    baseUrl: env.KEYCLOAK_SERVER_URL,
+    realmName: env.KEYCLOAK_REALM,
+  });
+
+  await keycloakAdmin.auth({
+    username: env.KEYCLOAK_ADMIN_USERNAME,
+    password: env.KEYCLOAK_ADMIN_PASSWORD,
+    grantType: "password",
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+    scopes: ["openid"],
+  });
+
+  await keycloakAdmin.users.del({ id: userId });
+
+  await invalidateToken(keycloakAdmin.refreshToken!);
+
+  return userId;
+};
+
+export const updateUser = async (
+  userId: string,
+  firstName?: string,
+  lastName?: string,
+  email?: string,
+  password?: string,
+  roles?: UserRole[],
+) => {
+  const keycloakAdmin = new KcAdminClient();
+
+  keycloakAdmin.setConfig({
+    baseUrl: env.KEYCLOAK_SERVER_URL,
+    realmName: env.KEYCLOAK_REALM,
+  });
+
+  await keycloakAdmin.auth({
+    username: env.KEYCLOAK_ADMIN_USERNAME,
+    password: env.KEYCLOAK_ADMIN_PASSWORD,
+    grantType: "password",
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+    scopes: ["openid"],
+  });
+
+  // create object with roles if they are provided,and password is provided
+  const updatedUser = {
+    id: userId,
+    firstName,
+    lastName,
+    email,
+    credentials: password
+      ? [
+          {
+            type: "password",
+            value: password,
+            temporary: false,
+          },
+        ]
+      : undefined,
+    realmRoles: roles ?? undefined,
+  };
+
+  await keycloakAdmin.users.update({ id: updatedUser.id }, { ...updatedUser });
+
+  if (password) {
+    await keycloakAdmin.users.resetPassword({
+      id: updatedUser.id,
+      credential: {
+        temporary: false,
+        type: "password",
+        value: password,
+      },
+    });
+  }
+
+  await invalidateToken(keycloakAdmin.refreshToken!);
+
+  return userId;
+};
+
+type KeycloakRoleNames =
+  | "platform-radiologist"
+  | "platform-admin"
+  | "platform-ml_engineer";
+
+type keyCloakRole = {
+  id: string;
+  name: KeycloakRoleNames;
+};
+
+const keycloakUserRoles: Record<UserRole, keyCloakRole> = {
+  RADIOLOGIST: {
+    id: "86f0d4ed-0d76-477a-b13a-75138f1de8e0",
+    name: "platform-radiologist",
+  },
+  ADMIN: { id: "6a963ff4-350e-415a-aa0c-d5ec53e00659", name: "platform-admin" },
+  ML_ENGINEER: {
+    id: "ceef76b1-0ba2-4ca7-ba15-b44fca5c483c",
+    name: "platform-ml_engineer",
+  },
+};
+
+export const setUserRoles = async (userId: string, roles: UserRole[]) => {
+  const keycloakAdmin = new KcAdminClient();
+
+  keycloakAdmin.setConfig({
+    baseUrl: env.KEYCLOAK_SERVER_URL,
+    realmName: env.KEYCLOAK_REALM,
+  });
+
+  await keycloakAdmin.auth({
+    username: env.KEYCLOAK_ADMIN_USERNAME,
+    password: env.KEYCLOAK_ADMIN_PASSWORD,
+    grantType: "password",
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+    scopes: ["openid"],
+  });
+
+  const keycloakRoles = roles.map((role) => keycloakUserRoles[role]);
+
+  await keycloakAdmin.users.addRealmRoleMappings({
+    id: userId,
+    roles: keycloakRoles,
+  });
+  console.log("keycloakRoles", keycloakRoles);
+  await invalidateToken(keycloakAdmin.refreshToken!);
+
+  return keycloakRoles;
+};
