@@ -5,7 +5,7 @@ export const APP_TITLE = "FONDEF 10337";
 export const redirects = {
   toLogin: "/login",
   toSignup: "/signup",
-  afterLogin: "/",
+  afterLogin: "/studies-list",
   afterLogout: "/",
   toVerify: "/verify-email",
   afterVerify: "/dashboard",

@@ -13,8 +13,8 @@ import { Social } from "./social";
 interface CardWrapperProps {
   children: React.ReactNode;
   headerLabel: string;
-  backButtonLabel: string;
-  backButtonHref: string;
+  backButtonLabel?: string;
+  backButtonHref?: string;
   showSocial?: boolean;
   isPending?: boolean;
 }
@@ -38,8 +38,11 @@ export const CardWrapper = ({
           <Social disabled={isPending} />
         </CardFooter>
       )}
+
       <CardFooter>
-        <BackButton label={backButtonLabel} href={backButtonHref} />
+        {backButtonLabel && backButtonHref && (
+          <BackButton label={backButtonLabel} href={backButtonHref} />
+        )}
       </CardFooter>
     </Card>
   );

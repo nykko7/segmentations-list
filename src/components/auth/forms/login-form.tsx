@@ -68,8 +68,8 @@ export const LoginForm = () => {
   return (
     <CardWrapper
       headerLabel="Bienvenid@ de nuevo"
-      backButtonLabel="¿No tienes una cuenta?"
-      backButtonHref="/auth/register"
+      // backButtonLabel="¿No tienes una cuenta?"
+      // backButtonHref="/auth/register"
       showSocial={false}
       isPending={isPending}
     >

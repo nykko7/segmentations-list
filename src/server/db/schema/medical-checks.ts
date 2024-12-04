@@ -30,6 +30,8 @@ export type MedicalCheck = {
       orthanc_uuid: string;
     }[];
   }[];
+  arrivedAt?: string | null;
+  segmentationLoadedAt?: string | null;
 };
 
 export const MedicalCheckSchema = z.object({

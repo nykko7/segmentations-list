@@ -139,12 +139,16 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
         grantType: "refresh_token",
       });
 
+      console.log("newToken", newToken);
+
       ctx.session.keycloak = {
         ...keycloak,
-        accessToken: newToken.accessToken,
-        refreshToken: newToken.refreshToken,
-        accessTokenExpiresAt: newToken.accessTokenExpiresAt,
-        refreshTokenExpiresAt: newToken.refreshTokenExpiresAt,
+        accessToken: newToken?.accessToken ?? keycloak.accessToken,
+        refreshToken: newToken?.refreshToken ?? keycloak.refreshToken,
+        accessTokenExpiresAt:
+          newToken?.accessTokenExpiresAt ?? keycloak.accessTokenExpiresAt,
+        refreshTokenExpiresAt:
+          newToken?.refreshTokenExpiresAt ?? keycloak.refreshTokenExpiresAt,
       };
 
       await updateSession({

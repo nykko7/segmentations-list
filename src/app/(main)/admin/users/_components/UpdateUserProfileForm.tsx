@@ -247,9 +247,9 @@ export function UpdateUserProfileForm({
         </div>
         <FormError message={error} />
         <FormSuccess message={success} />
-        <code>
+        {/* <code>
           <pre>{JSON.stringify(form.formState.errors, null, 2)}</pre>
-        </code>
+        </code> */}
 
         <div className="flex justify-end gap-1">
           <Button

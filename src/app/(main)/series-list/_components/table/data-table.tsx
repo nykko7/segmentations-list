@@ -135,7 +135,7 @@ export function DataTable<TData, TValue>({
                               Revisar exámen:
                             </h3>
                             <div className="flex gap-3">
-                              <Button variant="outline" className="gap-2">
+                              {/* <Button variant="outline" className="gap-2">
                                 <Image
                                   src={"/icons/slicer-icon.svg"}
                                   alt={"ohif icon"}
@@ -144,7 +144,7 @@ export function DataTable<TData, TValue>({
                                 />
                                 <span>3D Slicer</span>
                                 <ChevronsRight className="h-5 w-5 rounded-full bg-primary/50" />
-                              </Button>
+                              </Button> */}
                               <Link
                                 // href={`https://segmai.scian.cl/pacs/ohif/viewer?SeriesInstanceUIDs=${row.original.series_uuid}`}
                                 href={`https://segmai.scian.cl/pacs/ohif/viewer?StudyInstanceUIDs=${row.original.study_uuid}`}

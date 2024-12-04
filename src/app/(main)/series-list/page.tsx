@@ -32,8 +32,8 @@ export default async function SeriesList() {
   return (
     <>
       <PageHeader
-        title="Lista de exámenes"
-        description="Lista de exámenes disponibles para su revisión"
+        title="Lista de series"
+        description="Lista de series disponibles para su revisión"
         rightComponent={
           <p className="text-2xl font-medium text-muted-foreground">
             {medicalCheckCount} exámenes

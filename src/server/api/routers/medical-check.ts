@@ -6,8 +6,22 @@ import {
 import { type MedicalCheck } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 
+// Helper function to generate a random date within the last 30 days
+function getRandomRecentDate(): string {
+  const now = new Date();
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  return new Date(
+    ninetyDaysAgo.getTime() +
+      Math.random() * (now.getTime() - ninetyDaysAgo.getTime()),
+  ).toISOString();
+}
+
+// Helper function to get a random segmentation loaded date (50% chance of being null)
+function getRandomSegmentationLoadedAt(): string | null {
+  return Math.random() < 0.5 ? getRandomRecentDate() : null;
+}
+
 export const medicalCheckRouter = createTRPCRouter({
-  // prefix: t.procedure.input(callable).query(async (args) => handler(args)),
   getAllPublic: publicProcedure.query(async ({}) => {
     const res = await fetch(
       "https://segmai.scian.cl/gateway_api/segmentation_manager/segmentation_assistant/medical_checks",
@@ -17,10 +31,20 @@ export const medicalCheckRouter = createTRPCRouter({
       throw new Error("Failed to fetch medical checks");
     }
 
-    const data = (await res.json()) as MedicalCheck[];
+    const data = (await res.json()) as Omit<
+      MedicalCheck,
+      "arrivedAt" | "segmentationLoadedAt"
+    >[];
 
-    return data;
+    const medicalChecks: MedicalCheck[] = data.map((check) => ({
+      ...check,
+      arrivedAt: getRandomRecentDate(),
+      segmentationLoadedAt: getRandomSegmentationLoadedAt(),
+    }));
+
+    return medicalChecks;
   }),
+
   getAllPrivate: protectedProcedure.query(async ({ ctx }) => {
     const res = await fetch(
       "https://segmai.scian.cl/gateway_api/core/api/v1/segmentation_assistant/medical_checks",
@@ -59,8 +83,13 @@ export const medicalCheckRouter = createTRPCRouter({
       throw new Error("Failed to fetch medical checks");
     }
 
-    const data = (await res.json()) as MedicalCheck[];
+    const data = await res.json();
+    const segmentationLoadedAt = new Date();
 
-    return data;
+    return (data as MedicalCheck[]).map((check) => ({
+      ...check,
+      arrivedAt: check.arrivedAt ? new Date(check.arrivedAt) : undefined,
+      segmentationLoadedAt,
+    }));
   }),
 });

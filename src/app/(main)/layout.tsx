@@ -11,7 +11,6 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   if (!session) {
     redirect("/auth/login");
   }
-
   return (
     <div className="h-full">
       <div className="fixed inset-y-0 z-50 h-[80px] w-full lg:pl-60">
