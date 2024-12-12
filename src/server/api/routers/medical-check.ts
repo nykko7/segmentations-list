@@ -36,11 +36,24 @@ export const medicalCheckRouter = createTRPCRouter({
       "arrivedAt" | "segmentationLoadedAt"
     >[];
 
-    const medicalChecks: MedicalCheck[] = data.map((check) => ({
-      ...check,
-      arrivedAt: getRandomRecentDate(),
-      segmentationLoadedAt: getRandomSegmentationLoadedAt(),
-    }));
+    // Sort the medical checks by the presence of the study with the uuid "1.3.51.0.1.1.172.19.3.128.3268319.3268258"
+    const medicalChecks: MedicalCheck[] = data
+      .map((check) => ({
+        ...check,
+        arrivedAt: getRandomRecentDate(),
+        segmentationLoadedAt: getRandomSegmentationLoadedAt(),
+      }))
+      .sort((a, b) => {
+        return a.studies.some(
+          (study) => study.uuid === "1.3.51.0.1.1.172.19.3.128.3268319.3268258",
+        )
+          ? -1
+          : 1;
+      });
+
+    console.log(
+      medicalChecks.map((check) => check.studies.map((study) => study.uuid)),
+    );
 
     return medicalChecks;
   }),

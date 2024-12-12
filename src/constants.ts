@@ -1,4 +1,4 @@
-export const APP_TITLE = "FONDEF 10337";
+export const APP_TITLE = "T-CHAII";
 // export const DATABASE_PREFIX = "acme_v3";
 // export const EMAIL_SENDER = '"Acme" <noreply@acme.com>';
 

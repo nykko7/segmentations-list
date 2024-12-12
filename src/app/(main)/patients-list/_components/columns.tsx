@@ -4,7 +4,6 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
-import { statusesTypes } from "../types/statuses-types";
 import { CircleHelp } from "lucide-react";
 
 export type Study = {
@@ -71,6 +70,24 @@ export const columns: ColumnDef<Patient>[] = [
 
       const date = new Date(latestStudy.arrived_at);
       return <div>{date.toLocaleString("sv-SE", { timeZone: "UTC" })}</div>;
+    },
+  },
+  {
+    id: "pending_studies",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Estudios pendientes" />
+    ),
+    cell: ({ row }) => {
+      const studies = row.getValue("studies") as Study[];
+      const pendingStudies = studies.filter(
+        (study) => study.status === null || study.status === 400,
+      );
+      return (
+        <Badge variant="outline">
+          <CircleHelp className="mr-2 h-4 w-4" />
+          {pendingStudies.length}
+        </Badge>
+      );
     },
   },
   {

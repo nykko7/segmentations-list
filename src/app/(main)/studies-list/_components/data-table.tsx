@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -35,6 +36,31 @@ import { Study } from "./columns";
 interface DataTableProps<TData extends Study, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+}
+
+function generateRandomLesions(
+  count: number = Math.floor(Math.random() * 4) + 1,
+) {
+  const organs = [
+    "Pulmón derecho",
+    "Pulmón izquierdo",
+    "Hígado",
+    "Riñón",
+    "Estómago",
+    "Páncreas",
+  ];
+  const types = ["Tumor", "Nodo linfático maligno", "Metástasis"];
+  const targetTypes = ["Objetivo", "No objetivo"];
+
+  return Array.from({ length: count }, (_, i) => ({
+    name: `Lesión ${i + 1}`,
+    organ: organs[Math.floor(Math.random() * organs.length)],
+    volume: (Math.random() * 10).toFixed(1),
+    axialDiameter: Math.floor(Math.random() * 20) + 5,
+    majorDiameter: Math.floor(Math.random() * 25) + 10,
+    target: targetTypes[Math.floor(Math.random() * targetTypes.length)],
+    type: types[Math.floor(Math.random() * types.length)],
+  }));
 }
 
 export function DataTable<TData extends Study, TValue>({
@@ -135,87 +161,147 @@ export function DataTable<TData extends Study, TValue>({
                       <TableCell colSpan={columns.length + 1}>
                         <div className="flex flex-col gap-y-2 p-4">
                           <h3 className="text-lg font-bold">
-                            Revisar estudio:
+                            Estudios asociados al paciente:
                           </h3>
-                          <div className="flex gap-3">
-                            <Link
-                              href={`https://segmai.scian.cl/pacs/ohif/viewer?StudyInstanceUIDs=${row.original.study_uuid}`}
-                              target="_blank"
-                            >
-                              <Button variant="outline" className="gap-2">
-                                <Image
-                                  src={"/icons/ohif-icon-32x32.png"}
-                                  alt={"ohif viewer icon"}
-                                  width="25"
-                                  height="25"
-                                />
-                                <span>OHIF Viewer</span>
-                                <ChevronsRight className="h-5 w-5 rounded-full bg-primary/50" />
-                              </Button>
-                            </Link>
-                          </div>
-                          <h3 className="text-lg font-bold">
-                            Información adicional:
-                          </h3>
-                          <ul className="list-inside list-disc">
-                            <li>
-                              <span className="font-bold">Study UUID:</span>{" "}
-                              {row.original.study_uuid}
-                            </li>
-                            <li>
-                              <span className="font-bold">Series:</span>
-                              <ul className="ml-3 list-inside list-disc">
-                                {row.original.series?.map((serie) => (
-                                  <li key={serie.id}>{serie.name}</li>
+                          <Tabs
+                            defaultValue={row.original.study_id.toString()}
+                            className="w-full"
+                          >
+                            <TabsList className="mb-2 flex justify-start space-x-2 px-2">
+                              <span className="font-bold">Estudios:</span>
+                              {data
+                                .filter(
+                                  (study) =>
+                                    study.patient_code ===
+                                    row.original.patient_code,
+                                )
+                                .map((study, index) => (
+                                  <TabsTrigger
+                                    key={study.study_id}
+                                    value={study.study_id.toString()}
+                                    className={cn({
+                                      "font-bold": index === 0,
+                                      "border border-primary":
+                                        study.study_id ===
+                                        row.original.study_id,
+                                    })}
+                                  >
+                                    {new Date(
+                                      study.arrived_at,
+                                    ).toLocaleDateString()}
+                                  </TabsTrigger>
                                 ))}
-                              </ul>
-                            </li>
-                          </ul>
-                          <h3 className="text-lg font-bold">
-                            Lesiones encontradas en el exámen:
-                          </h3>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead>Organo(s) afectado(s)</TableHead>
-                                <TableHead>Volúmen (cm3)</TableHead>
-                                <TableHead>Diámetro Axial Mayor (mm)</TableHead>
-                                <TableHead>Diámetro Mayor (mm)</TableHead>
-                                <TableHead>Lesión objetivo</TableHead>
-                                <TableHead>Tipo</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              <TableRow>
-                                <TableCell>Lesión 1</TableCell>
-                                <TableCell>Pulmón derecho</TableCell>
-                                <TableCell>2</TableCell>
-                                <TableCell>5</TableCell>
-                                <TableCell>8</TableCell>
-                                <TableCell>Objetivo</TableCell>
-                                <TableCell>Tumor</TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>Lesión 2</TableCell>
-                                <TableCell>Estómago</TableCell>
-                                <TableCell>3</TableCell>
-                                <TableCell>7</TableCell>
-                                <TableCell>10</TableCell>
-                                <TableCell>No objetivo</TableCell>
-                                <TableCell>Nodo linfático maligno</TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>Lesión 3</TableCell>
-                                <TableCell>Riñon</TableCell>
-                                <TableCell>3</TableCell>
-                                <TableCell>5</TableCell>
-                                <TableCell>6</TableCell>
-                                <TableCell>Objetivo</TableCell>
-                                <TableCell>Tumor</TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
+                            </TabsList>
+                            {data
+                              .filter(
+                                (study) =>
+                                  study.patient_code ===
+                                  row.original.patient_code,
+                              )
+                              .map((study) => (
+                                <TabsContent
+                                  key={study.study_id}
+                                  value={study.study_id.toString()}
+                                  className="mt-0 flex flex-col gap-y-2"
+                                >
+                                  <h3 className="text-lg font-bold">
+                                    Información del estudio:
+                                  </h3>
+                                  <ul className="list-inside list-disc">
+                                    <li>
+                                      <span className="font-bold">
+                                        Study UUID:
+                                      </span>{" "}
+                                      {study.study_uuid}
+                                    </li>
+                                    <li>
+                                      <span className="font-bold">Series:</span>
+                                      <ul className="ml-3 list-inside list-disc">
+                                        {study.series?.map((serie) => (
+                                          <li key={serie.id}>{serie.name}</li>
+                                        ))}
+                                      </ul>
+                                    </li>
+                                  </ul>
+                                  <h3 className="text-lg font-bold">
+                                    Revisar estudio:
+                                  </h3>
+                                  <div className="flex gap-3">
+                                    <Link
+                                      href={`https://segmai.scian.cl/pacs/ohif/t-chaii?StudyInstanceUIDs=${study.study_uuid}`}
+                                      target="_blank"
+                                    >
+                                      <Button
+                                        variant="outline"
+                                        className="gap-2"
+                                      >
+                                        <Image
+                                          src={"/icons/ohif-icon-32x32.png"}
+                                          alt={"ohif viewer icon"}
+                                          width="25"
+                                          height="25"
+                                        />
+                                        <span>OHIF Viewer</span>
+                                        <ChevronsRight className="h-5 w-5 rounded-full bg-primary/50" />
+                                      </Button>
+                                    </Link>
+                                  </div>
+                                  <h3 className="text-lg font-bold">
+                                    Lesiones encontradas en el estudio:
+                                  </h3>
+                                  <div className="rounded-md border">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Nombre</TableHead>
+                                          <TableHead>
+                                            Organo(s) afectado(s)
+                                          </TableHead>
+                                          <TableHead>Volúmen (cm3)</TableHead>
+                                          <TableHead>
+                                            Diámetro Axial Mayor (mm)
+                                          </TableHead>
+                                          <TableHead>
+                                            Diámetro Mayor (mm)
+                                          </TableHead>
+                                          <TableHead>Lesión objetivo</TableHead>
+                                          <TableHead>Tipo</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {generateRandomLesions().map(
+                                          (lesion, index) => (
+                                            <TableRow key={index}>
+                                              <TableCell>
+                                                {lesion.name}
+                                              </TableCell>
+                                              <TableCell>
+                                                {lesion.organ}
+                                              </TableCell>
+                                              <TableCell>
+                                                {lesion.volume}
+                                              </TableCell>
+                                              <TableCell>
+                                                {lesion.axialDiameter}
+                                              </TableCell>
+                                              <TableCell>
+                                                {lesion.majorDiameter}
+                                              </TableCell>
+                                              <TableCell>
+                                                {lesion.target}
+                                              </TableCell>
+                                              <TableCell>
+                                                {lesion.type}
+                                              </TableCell>
+                                            </TableRow>
+                                          ),
+                                        )}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                </TabsContent>
+                              ))}
+                          </Tabs>
                         </div>
                       </TableCell>
                     </TableRow>

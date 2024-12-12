@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { statusesTypes } from "../types/statuses-types";
-import { CircleHelp, CircleX } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CircleHelp } from "lucide-react";
 
 export type Study = {
   study_id: number;
@@ -114,7 +113,7 @@ export const columns: ColumnDef<Study>[] = [
         return (
           <div className="flex w-[100px] items-center">
             <Badge variant="outline">
-              <CircleX className="mr-2 h-4 w-4" />
+              <CircleHelp className="mr-2 h-4 w-4 text-muted-foreground" />
               Desconocido
             </Badge>
           </div>
@@ -123,23 +122,9 @@ export const columns: ColumnDef<Study>[] = [
 
       return (
         <div className="flex w-[100px] items-center">
-          <Badge
-            variant={status.variant}
-            className={cn(
-              status.color === "warning" && "border-yellow-500",
-              status.color === "default" && "border",
-            )}
-          >
+          <Badge variant={status.variant}>
             {status.icon && (
-              <status.icon
-                className={
-                  (cn(
-                    status.color === "warning" && "text-yellow-500",
-                    status.color === "default" && "text-muted-foreground",
-                  ),
-                  "mr-2 h-4 w-4")
-                }
-              />
+              <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
             )}
             {status.label}
           </Badge>

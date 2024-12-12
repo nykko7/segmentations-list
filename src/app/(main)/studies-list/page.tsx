@@ -12,23 +12,30 @@ export default async function StudiesListPage() {
 
   console.log("medicalChecks", medicalChecks);
 
-  const studies = medicalChecks.reduce((acc: Study[], medicalCheck) => {
-    medicalCheck.studies.forEach((study) => {
-      acc.push({
-        study_id: study.id,
-        study_uuid: study.uuid,
-        study_name: study.name,
-        study_status: medicalCheck.status
-          ? medicalCheck.status.toString()
-          : "null",
-        patient_code: medicalCheck.code,
-        arrived_at: medicalCheck.arrivedAt ?? "",
-        segmentation_loaded_at: medicalCheck.segmentationLoadedAt ?? "",
-        series: study.series,
+  const studies = medicalChecks
+    .reduce((acc: Study[], medicalCheck) => {
+      medicalCheck.studies.forEach((study) => {
+        acc.push({
+          study_id: study.id,
+          study_uuid: study.uuid,
+          study_name: study.name,
+          study_status:
+            study.uuid === "1.3.51.0.1.1.172.19.3.128.3268319.3268258"
+              ? "200"
+              : study.status
+                ? study.status.toString()
+                : "null",
+          patient_code: medicalCheck.code,
+          arrived_at: medicalCheck.arrivedAt ?? "",
+          segmentation_loaded_at: medicalCheck.segmentationLoadedAt ?? "",
+          series: study.series,
+        });
       });
+      return acc;
+    }, [])
+    .sort((a, b) => {
+      return a.study_status === "200" ? -1 : 1;
     });
-    return acc;
-  }, []);
 
   return (
     <>

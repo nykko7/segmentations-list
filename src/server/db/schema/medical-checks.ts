@@ -15,7 +15,7 @@ export type MedicalCheck = {
   id: number;
   code: string;
   orthanc_uuid: string;
-  status: number;
+  status: number | null;
   studies: {
     id: number;
     name: string;
