@@ -28,14 +28,14 @@ export default async function ML_Analytics_Page() {
 function processArrivedExamsData(medicalChecks: MedicalCheck[]) {
   // Group exams by date and count
   const groupedData = medicalChecks.reduce(
-    (acc, check) => {
+    (acc: Record<string, number>, check) => {
       const date = check.arrivedAt
-        ? new Date(check.arrivedAt).toISOString().split("T")[0]
+        ? new Date(check.arrivedAt).toISOString().split("T")[0]!
         : "";
-      acc[date as keyof typeof acc] = (acc[date as keyof typeof acc] || 0) + 1;
+      acc[date] = (acc[date] || 0) + 1;
       return acc;
     },
-    {} as Record<string, number>,
+    {},
   );
 
   // Convert to array of objects sorted by date
@@ -47,17 +47,16 @@ function processArrivedExamsData(medicalChecks: MedicalCheck[]) {
 function processSegmentationLoadedData(medicalChecks: MedicalCheck[]) {
   // Group segmentations by date and count
   const groupedData = medicalChecks.reduce(
-    (acc, check) => {
+    (acc: Record<string, number>, check) => {
       if (check.segmentationLoadedAt) {
         const date = new Date(check.segmentationLoadedAt)
           .toISOString()
-          .split("T")[0];
-        acc[date as keyof typeof acc] =
-          (acc[date as keyof typeof acc] || 0) + 1;
+          .split("T")[0]!;
+        acc[date] = (acc[date] || 0) + 1;
       }
       return acc;
     },
-    {} as Record<string, number>,
+    {},
   );
 
   // Convert to array of objects sorted by date
