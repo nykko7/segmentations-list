@@ -15,6 +15,23 @@ export type Series = {
   patient_code: string;
 };
 
+export type Study = {
+  study_id: number;
+  study_name: string;
+  study_uuid: string;
+  study_status: string | null;
+  patient_code: string;
+  series: {
+    id: number;
+    name: string;
+    uuid: string;
+    status: number;
+    orthanc_uuid: string;
+  }[];
+  arrived_at: string;
+  segmentation_loaded_at: string;
+};
+
 export const columns: ColumnDef<Series>[] = [
   {
     accessorKey: "patient_code",

@@ -36,13 +36,14 @@ import { ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 
 import Image from "next/image";
 import Link from "next/link";
+import { Study } from "./columns";
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends Study, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends Study, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
@@ -172,7 +173,11 @@ export function DataTable<TData, TValue>({
                               </li>
                               <li>
                                 <span className="font-bold">Series UUID:</span>{" "}
-                                {row.original.series_uuid!}
+                                <ul className="ml-3 list-inside list-disc">
+                                  {row.original.series.map((serie) => (
+                                    <li key={serie.id}>{serie.name}</li>
+                                  ))}
+                                </ul>
                               </li>
                               <li>
                                 <span className="font-bold">Revisado por:</span>{" "}
