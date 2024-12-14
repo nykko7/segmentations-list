@@ -43,7 +43,7 @@ export const columns: ColumnDef<Patient>[] = [
       <DataTableColumnHeader column={column} title="Cantidad de estudios" />
     ),
     cell: ({ row }) => {
-      const studies = row.getValue("studies") as Study[];
+      const studies: Study[] = row.getValue("studies");
       return <div>{studies.length}</div>;
     },
     enableSorting: true,
@@ -55,7 +55,7 @@ export const columns: ColumnDef<Patient>[] = [
       <DataTableColumnHeader column={column} title="Último estudio" />
     ),
     cell: ({ row }) => {
-      const studies = row.getValue("studies") as Study[];
+      const studies: Study[] = row.getValue("studies");
       const latestStudy = studies.reduce(
         (latest, current) => {
           if (!latest) return current;
@@ -78,7 +78,7 @@ export const columns: ColumnDef<Patient>[] = [
       <DataTableColumnHeader column={column} title="Estudios pendientes" />
     ),
     cell: ({ row }) => {
-      const studies = row.getValue("studies") as Study[];
+      const studies: Study[] = row.getValue("studies");
       const pendingStudies = studies.filter(
         (study) => study.status === null || study.status === 400,
       );

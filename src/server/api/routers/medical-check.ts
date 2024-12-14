@@ -96,7 +96,7 @@ export const medicalCheckRouter = createTRPCRouter({
       throw new Error("Failed to fetch medical checks");
     }
 
-    const data = await res.json();
+    const data: MedicalCheck[] = await res.json();
     const segmentationLoadedAt = new Date();
 
     return (data as MedicalCheck[]).map((check) => ({

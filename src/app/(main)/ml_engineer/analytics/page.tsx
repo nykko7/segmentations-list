@@ -32,7 +32,7 @@ function processArrivedExamsData(medicalChecks: MedicalCheck[]) {
       const date = check.arrivedAt
         ? new Date(check.arrivedAt).toISOString().split("T")[0]!
         : "";
-      acc[date] = (acc[date] || 0) + 1;
+      acc[date] = (acc[date] ?? 0) + 1;
       return acc;
     },
     {},
@@ -52,7 +52,7 @@ function processSegmentationLoadedData(medicalChecks: MedicalCheck[]) {
         const date = new Date(check.segmentationLoadedAt)
           .toISOString()
           .split("T")[0]!;
-        acc[date] = (acc[date] || 0) + 1;
+        acc[date] = (acc[date] ?? 0) + 1;
       }
       return acc;
     },

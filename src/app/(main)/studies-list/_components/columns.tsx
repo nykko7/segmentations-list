@@ -146,7 +146,7 @@ export const columns: ColumnDef<Study>[] = [
         </div>
       );
     },
-    filterFn: (row, id, value) => {
+    filterFn: (row, id, value: string) => {
       return value.includes(row.getValue(id));
     },
   },
