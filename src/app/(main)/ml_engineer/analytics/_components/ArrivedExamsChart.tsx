@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/chart";
 
 interface ArrivedExamsChartProps {
-  data: { date: string; value: number }[];
+  data: { date: string; value: unknown }[];
 }
 
 const chartConfig = {

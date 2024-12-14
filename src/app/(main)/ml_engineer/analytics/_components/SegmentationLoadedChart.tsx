@@ -16,7 +16,7 @@ import {
 } from "recharts";
 
 interface SegmentationLoadedChartProps {
-  data: { date: string; value: number }[];
+  data: { date: string; value: unknown }[];
 }
 
 const chartConfig = {

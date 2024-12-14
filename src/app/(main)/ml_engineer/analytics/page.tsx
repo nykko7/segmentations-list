@@ -3,6 +3,7 @@ import { api } from "@/trpc/server";
 import { PageHeader } from "../../_components/PageHeader";
 import { ArrivedExamsChart } from "./_components/ArrivedExamsChart";
 import { SegmentationLoadedChart } from "./_components/SegmentationLoadedChart";
+import { MedicalCheck } from "@/server/db/schema";
 
 export default async function ML_Analytics_Page() {
   // noStore();
@@ -24,13 +25,18 @@ export default async function ML_Analytics_Page() {
   );
 }
 
-function processArrivedExamsData(medicalChecks) {
+function processArrivedExamsData(medicalChecks: MedicalCheck[]) {
   // Group exams by date and count
-  const groupedData = medicalChecks.reduce((acc, check) => {
-    const date = new Date(check.arrivedAt).toISOString().split("T")[0];
-    acc[date] = (acc[date] || 0) + 1;
-    return acc;
-  }, {});
+  const groupedData = medicalChecks.reduce(
+    (acc, check) => {
+      const date = check.arrivedAt
+        ? new Date(check.arrivedAt).toISOString().split("T")[0]
+        : "";
+      acc[date as keyof typeof acc] = (acc[date as keyof typeof acc] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   // Convert to array of objects sorted by date
   return Object.entries(groupedData)
@@ -38,17 +44,21 @@ function processArrivedExamsData(medicalChecks) {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function processSegmentationLoadedData(medicalChecks) {
+function processSegmentationLoadedData(medicalChecks: MedicalCheck[]) {
   // Group segmentations by date and count
-  const groupedData = medicalChecks.reduce((acc, check) => {
-    if (check.segmentationLoadedAt) {
-      const date = new Date(check.segmentationLoadedAt)
-        .toISOString()
-        .split("T")[0];
-      acc[date] = (acc[date] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  const groupedData = medicalChecks.reduce(
+    (acc, check) => {
+      if (check.segmentationLoadedAt) {
+        const date = new Date(check.segmentationLoadedAt)
+          .toISOString()
+          .split("T")[0];
+        acc[date as keyof typeof acc] =
+          (acc[date as keyof typeof acc] || 0) + 1;
+      }
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   // Convert to array of objects sorted by date
   return Object.entries(groupedData)
