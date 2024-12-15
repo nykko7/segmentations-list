@@ -236,7 +236,9 @@ export function DataTable<TData extends Study, TValue>({
                                         className="gap-2"
                                       >
                                         <Image
-                                          src={"/icons/ohif-icon-32x32.png"}
+                                          src={
+                                            "/tchaii/icons/ohif-icon-32x32.png"
+                                          }
                                           alt={"ohif viewer icon"}
                                           width="25"
                                           height="25"
