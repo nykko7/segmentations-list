@@ -1,7 +1,8 @@
 "use client";
 
+import * as React from "react";
 import { Cross2Icon } from "@radix-ui/react-icons";
-import { Table } from "@tanstack/react-table";
+import { type Table } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,20 +20,31 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
+  const studyUuidColumn = table.getColumn("study_uuid");
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    if (studyUuidColumn) {
+      studyUuidColumn.setFilterValue(value);
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between">
+    <div
+      className="flex items-center justify-between"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex flex-1 items-center space-x-2">
-        {/* TODO: Add filter by Accession Number */}
-        <Input
-          placeholder="Filtrar por accession number..."
-          value={
-            (table.getColumn("patient_code")?.getFilterValue() as string) ?? ""
-          }
-          onChange={(event) =>
-            table.getColumn("patient_code")?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
-        />
+        <div className="w-[150px] lg:w-[250px]">
+          <Input
+            placeholder="Filtrar por accession number..."
+            value={(studyUuidColumn?.getFilterValue() as string) || ""}
+            onChange={handleInputChange}
+            className="h-8"
+            autoComplete="off"
+            disabled={!studyUuidColumn}
+          />
+        </div>
         {table.getColumn("study_status") && (
           <DataTableFacetedFilter
             column={table.getColumn("study_status")}

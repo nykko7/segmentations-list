@@ -3,10 +3,11 @@
 import * as React from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
+  type FilterFn,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -31,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Study } from "./columns";
+import { type Study } from "./columns";
 
 interface DataTableProps<TData extends Study, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -105,6 +106,21 @@ export function DataTable<TData extends Study, TValue>({
     }));
   }, []);
 
+  const handleRowClick = React.useCallback(
+    (event: React.MouseEvent, rowId: string) => {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLButtonElement ||
+        (event.target as HTMLElement).closest("input") ||
+        (event.target as HTMLElement).closest("button")
+      ) {
+        return;
+      }
+      toggleRowExpanded(rowId);
+    },
+    [toggleRowExpanded],
+  );
+
   return (
     <div className="space-y-4">
       <DataTableToolbar table={table} />
@@ -136,7 +152,7 @@ export function DataTable<TData extends Study, TValue>({
                   <TableRow
                     data-state={row.getIsSelected() && "selected"}
                     className="group cursor-pointer"
-                    onClick={() => toggleRowExpanded(row.id)}
+                    onClick={(e) => handleRowClick(e, row.id)}
                   >
                     <TableCell>
                       <ChevronRight
