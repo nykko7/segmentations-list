@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Study } from "./columns";
+import { type Study } from "./columns";
 import { ChevronsRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { env } from "@/env";
 
 interface StudyDetailsProps {
   study: Study;
@@ -22,7 +23,7 @@ export function StudyDetails({ study }: StudyDetailsProps) {
       <CardContent className="space-y-4">
         <div className="flex gap-3">
           <Link
-            href={`https://segmai.scian.cl/pacs/ohif/viewer?StudyInstanceUIDs=${study.uuid}`}
+            href={`${env.NEXT_PUBLIC_OHIF_VIEWER_URL}/${env.NEXT_PUBLIC_OHIF_VIEWER_MODE}?StudyInstanceUIDs=${study.uuid}`}
             target="_blank"
           >
             <Button variant="outline" className="gap-2">

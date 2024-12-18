@@ -33,6 +33,8 @@ export const env = createEnv({
    */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_OHIF_VIEWER_URL: z.string(),
+    NEXT_PUBLIC_OHIF_VIEWER_MODE: z.string(),
   },
 
   /**
@@ -49,6 +51,9 @@ export const env = createEnv({
     KEYCLOAK_SERVER_URL: process.env.KEYCLOAK_SERVER_URL,
     KEYCLOAK_ADMIN_USERNAME: process.env.KEYCLOAK_ADMIN_USERNAME,
     KEYCLOAK_ADMIN_PASSWORD: process.env.KEYCLOAK_ADMIN_PASSWORD,
+
+    NEXT_PUBLIC_OHIF_VIEWER_URL: process.env.NEXT_PUBLIC_OHIF_VIEWER_URL,
+    NEXT_PUBLIC_OHIF_VIEWER_MODE: process.env.NEXT_PUBLIC_OHIF_VIEWER_MODE,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

@@ -2,7 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { api } from "@/trpc/server";
 import { PageHeader } from "../_components/PageHeader";
-import { columns, Study } from "./_components/columns";
+import { columns, type Study } from "./_components/columns";
 import { DataTable } from "./_components/data-table";
 
 type Patient = {
@@ -28,8 +28,8 @@ export default async function PatientsListPage() {
           uuid: study.uuid,
           name: study.name,
           status: medicalCheck.status,
-          arrived_at: medicalCheck.arrivedAt ?? "",
-          segmentation_loaded_at: medicalCheck.segmentationLoadedAt ?? "",
+          arrived_at: study.arrived_at ?? "",
+          segmentation_loaded_at: study.segmentation_loaded_at ?? "",
           series: study.series,
         })),
       );
@@ -41,8 +41,8 @@ export default async function PatientsListPage() {
           uuid: study.uuid,
           name: study.name,
           status: medicalCheck.status,
-          arrived_at: medicalCheck.arrivedAt ?? "",
-          segmentation_loaded_at: medicalCheck.segmentationLoadedAt ?? "",
+          arrived_at: study.arrived_at ?? "",
+          segmentation_loaded_at: study.segmentation_loaded_at ?? "",
           series: study.series,
         })),
       });

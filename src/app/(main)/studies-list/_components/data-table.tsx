@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { type Study } from "./columns";
+import { env } from "@/env";
 
 interface DataTableProps<TData extends Study, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -244,7 +245,7 @@ export function DataTable<TData extends Study, TValue>({
                                   </h3>
                                   <div className="flex gap-3">
                                     <Link
-                                      href={`https://segmai.scian.cl/pacs/ohif/t-chaii?StudyInstanceUIDs=${study.study_uuid}`}
+                                      href={`${env.NEXT_PUBLIC_OHIF_VIEWER_URL}/${env.NEXT_PUBLIC_OHIF_VIEWER_MODE}?StudyInstanceUIDs=${study.study_uuid}`}
                                       target="_blank"
                                     >
                                       <Button

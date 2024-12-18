@@ -3,10 +3,10 @@
 import * as React from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -31,7 +31,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Patient, Study } from "./columns";
+import { type Patient, type Study } from "./columns";
+import { env } from "@/env";
 
 interface DataTableProps<TData extends Patient, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -45,6 +46,15 @@ type Lesion = {
     date: string;
     diameter: number;
   }[];
+};
+
+type LesionMeasurements = {
+  targetLesions: {
+    id: number;
+    site: string;
+    measurements: Record<string, number>; // studyId -> value
+  }[];
+  sumByStudy: Record<string, number>; // studyId -> sum
 };
 
 function generateControlColumns(study: Study) {
@@ -69,6 +79,12 @@ export function DataTable<TData extends Patient, TValue>({
   const [expandedRows, setExpandedRows] = React.useState<
     Record<string, boolean>
   >({});
+  const [selectedStudies, setSelectedStudies] = React.useState<
+    Record<string, string>
+  >({});
+  const [lesionMeasurements, setLesionMeasurements] = React.useState<
+    Record<string, LesionMeasurements>
+  >({});
 
   const table = useReactTable({
     data,
@@ -90,12 +106,72 @@ export function DataTable<TData extends Patient, TValue>({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  const toggleRowExpanded = React.useCallback((rowId: string) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [rowId]: !prev[rowId],
-    }));
-  }, []);
+  const toggleRowExpanded = React.useCallback(
+    (rowId: string) => {
+      setExpandedRows((prev) => {
+        const willExpand = !prev[rowId];
+
+        if (willExpand) {
+          const row = table.getRowModel().rows.find((r) => r.id === rowId);
+          if (row) {
+            const firstStudy = row.original.studies[0];
+            if (firstStudy) {
+              setSelectedStudies((prev) => ({
+                ...prev,
+                [rowId]: firstStudy.id.toString(),
+              }));
+            }
+
+            if (!lesionMeasurements[rowId]) {
+              const studies = row.original.studies;
+              const targetLesions = [
+                { site: "pulmón LII", id: 1 },
+                { site: "mediastino para traqueal", id: 2 },
+                { site: "mediastino anterior a VCS", id: 3 },
+              ].map((lesion) => ({
+                ...lesion,
+                measurements: studies.reduce<Record<number, number>>(
+                  (acc, study) => ({
+                    ...acc,
+                    [study.id]: Math.floor(Math.random() * 100),
+                  }),
+                  {},
+                ),
+              }));
+
+              const sumByStudy = studies.reduce<Record<number, number>>(
+                (acc, study) => ({
+                  ...acc,
+                  [study.id]: targetLesions.reduce(
+                    (sum, lesion) => sum + (lesion.measurements[study.id] ?? 0),
+                    0,
+                  ),
+                }),
+                {},
+              );
+
+              setLesionMeasurements((prev) => ({
+                ...prev,
+                [rowId]: { targetLesions, sumByStudy },
+              }));
+            }
+          }
+        } else {
+          setSelectedStudies((prev) => {
+            const next = { ...prev };
+            delete next[rowId];
+            return next;
+          });
+        }
+
+        return {
+          ...prev,
+          [rowId]: willExpand,
+        };
+      });
+    },
+    [table, lesionMeasurements],
+  );
 
   return (
     <div className="space-y-4">
@@ -158,6 +234,16 @@ export function DataTable<TData extends Patient, TValue>({
                           <Tabs
                             defaultValue={row.original.studies[0]?.id.toString()}
                             className="w-full"
+                            onValueChange={(value) =>
+                              setSelectedStudies((prev) => ({
+                                ...prev,
+                                [row.id]: value,
+                              }))
+                            }
+                            value={
+                              selectedStudies[row.id] ??
+                              row.original.studies[0]?.id.toString()
+                            }
                           >
                             <TabsList className="mb-2 flex justify-start space-x-2 px-2">
                               <span className="font-bold">Estudios:</span>
@@ -206,7 +292,7 @@ export function DataTable<TData extends Patient, TValue>({
                                 </h3>
                                 <div className="flex gap-3">
                                   <Link
-                                    href={`https://segmai.scian.cl/pacs/ohif/viewer?StudyInstanceUIDs=${study.uuid}`}
+                                    href={`${env.NEXT_PUBLIC_OHIF_VIEWER_URL}/${env.NEXT_PUBLIC_OHIF_VIEWER_MODE}?StudyInstanceUIDs=${study.uuid}`}
                                     target="_blank"
                                   >
                                     <Button variant="outline" className="gap-2">
@@ -227,7 +313,6 @@ export function DataTable<TData extends Patient, TValue>({
                                 <h3 className="mt-4 text-lg font-bold">
                                   Lesiones Target
                                 </h3>
-                                {/* Target Lesions Table */}
                                 <div className="rounded-md border">
                                   <Table>
                                     <TableHeader>
@@ -238,67 +323,68 @@ export function DataTable<TData extends Patient, TValue>({
                                         <TableHead className="min-w-[200px]">
                                           Sitio / Subsitio Anatómico
                                         </TableHead>
-                                        <TableHead>
-                                          Control {study.id} / Fecha:{" "}
-                                          {new Date(
-                                            study.arrived_at,
-                                          ).toLocaleDateString()}
-                                        </TableHead>
-                                        {row.original.studies
-                                          .filter((s) => s.id > study.id)
-                                          .map((s) => (
-                                            <TableHead key={s.id}>
-                                              Control {s.id} / Fecha:{" "}
-                                              {new Date(
-                                                s.arrived_at,
-                                              ).toLocaleDateString()}
-                                            </TableHead>
-                                          ))}
+                                        {row.original.studies.map((s) => (
+                                          <TableHead
+                                            key={s.id}
+                                            className={cn({
+                                              "bg-muted":
+                                                selectedStudies[row.id] ===
+                                                s.id.toString(),
+                                            })}
+                                          >
+                                            Estudio {s.id} / Fecha:{" "}
+                                            {new Date(
+                                              s.arrived_at,
+                                            ).toLocaleDateString()}
+                                          </TableHead>
+                                        ))}
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      <TableRow>
-                                        <TableCell>1</TableCell>
-                                        <TableCell>pulmón LII</TableCell>
-                                        <TableCell>73</TableCell>
-                                        <TableCell>65</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
-                                      </TableRow>
-                                      <TableRow>
-                                        <TableCell>2</TableCell>
-                                        <TableCell>
-                                          mediastino para traqueal
-                                        </TableCell>
-                                        <TableCell>14</TableCell>
-                                        <TableCell>9</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
-                                      </TableRow>
-                                      <TableRow>
-                                        <TableCell>3</TableCell>
-                                        <TableCell>
-                                          mediastino anterior a VCS
-                                        </TableCell>
-                                        <TableCell>11</TableCell>
-                                        <TableCell>9</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
-                                      </TableRow>
+                                      {lesionMeasurements[
+                                        row.id
+                                      ]?.targetLesions.map((lesion) => (
+                                        <TableRow key={lesion.id}>
+                                          <TableCell>{lesion.id}</TableCell>
+                                          <TableCell>{lesion.site}</TableCell>
+                                          {row.original.studies.map((s) => (
+                                            <TableCell
+                                              key={s.id}
+                                              className={cn({
+                                                "bg-muted":
+                                                  selectedStudies[row.id] ===
+                                                  s.id.toString(),
+                                              })}
+                                            >
+                                              {lesion.measurements[s.id]}
+                                            </TableCell>
+                                          ))}
+                                        </TableRow>
+                                      ))}
                                       <TableRow className="font-medium">
                                         <TableCell colSpan={2}>
                                           Sumatoria de Diámetros
                                         </TableCell>
-                                        <TableCell>98</TableCell>
-                                        <TableCell>83</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
+                                        {row.original.studies.map((s) => (
+                                          <TableCell
+                                            key={s.id}
+                                            className={cn({
+                                              "bg-muted":
+                                                selectedStudies[row.id] ===
+                                                s.id.toString(),
+                                            })}
+                                          >
+                                            {
+                                              lesionMeasurements[row.id]
+                                                ?.sumByStudy[s.id]
+                                            }
+                                          </TableCell>
+                                        ))}
                                       </TableRow>
                                     </TableBody>
                                   </Table>
                                 </div>
 
-                                {/* Non-Target Lesions Table */}
                                 <h4 className="mt-4 text-lg font-bold">
                                   Lesiones no Target
                                 </h4>
@@ -313,8 +399,15 @@ export function DataTable<TData extends Patient, TValue>({
                                           Sitio / Subsitio Anatómico
                                         </TableHead>
                                         {row.original.studies.map((s) => (
-                                          <TableHead key={s.id}>
-                                            Control {s.id} / Fecha:{" "}
+                                          <TableHead
+                                            key={s.id}
+                                            className={cn({
+                                              "bg-muted":
+                                                selectedStudies[row.id] ===
+                                                s.id.toString(),
+                                            })}
+                                          >
+                                            Estudio {s.id} / Fecha:{" "}
                                             {new Date(
                                               s.arrived_at,
                                             ).toLocaleDateString()}
@@ -323,13 +416,19 @@ export function DataTable<TData extends Patient, TValue>({
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {/* Empty rows for non-target lesions */}
                                       {[1, 2, 3, 4, 5].map((n) => (
                                         <TableRow key={n}>
                                           <TableCell>{n}</TableCell>
                                           <TableCell></TableCell>
                                           {row.original.studies.map((s) => (
-                                            <TableCell key={s.id}></TableCell>
+                                            <TableCell
+                                              key={s.id}
+                                              className={cn({
+                                                "bg-muted":
+                                                  selectedStudies[row.id] ===
+                                                  s.id.toString(),
+                                              })}
+                                            ></TableCell>
                                           ))}
                                         </TableRow>
                                       ))}
@@ -337,7 +436,6 @@ export function DataTable<TData extends Patient, TValue>({
                                   </Table>
                                 </div>
 
-                                {/* New Lesions Table */}
                                 <h4 className="mt-4 text-lg font-bold">
                                   Lesiones nuevas
                                 </h4>
@@ -349,8 +447,15 @@ export function DataTable<TData extends Patient, TValue>({
                                           Sitio / Subsitio Anatómico
                                         </TableHead>
                                         {row.original.studies.map((s) => (
-                                          <TableHead key={s.id}>
-                                            Control {s.id} / Fecha:{" "}
+                                          <TableHead
+                                            key={s.id}
+                                            className={cn({
+                                              "bg-muted":
+                                                selectedStudies[row.id] ===
+                                                s.id.toString(),
+                                            })}
+                                          >
+                                            Estudio {s.id} / Fecha:{" "}
                                             {new Date(
                                               s.arrived_at,
                                             ).toLocaleDateString()}
@@ -359,12 +464,18 @@ export function DataTable<TData extends Patient, TValue>({
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {/* Empty rows for new lesions */}
                                       {[1, 2, 3, 4].map((n) => (
                                         <TableRow key={n}>
                                           <TableCell></TableCell>
                                           {row.original.studies.map((s) => (
-                                            <TableCell key={s.id}></TableCell>
+                                            <TableCell
+                                              key={s.id}
+                                              className={cn({
+                                                "bg-muted":
+                                                  selectedStudies[row.id] ===
+                                                  s.id.toString(),
+                                              })}
+                                            ></TableCell>
                                           ))}
                                         </TableRow>
                                       ))}

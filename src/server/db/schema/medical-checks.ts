@@ -22,6 +22,8 @@ export type MedicalCheck = {
     uuid: string;
     status: number;
     orthanc_uuid: string;
+    arrived_at?: string | null;
+    segmentation_loaded_at?: string | null;
     series: {
       id: number;
       name: string;
@@ -30,8 +32,6 @@ export type MedicalCheck = {
       orthanc_uuid: string;
     }[];
   }[];
-  arrivedAt?: string | null;
-  segmentationLoadedAt?: string | null;
 };
 
 export const MedicalCheckSchema = z.object({

@@ -6,21 +6,6 @@ import {
 import { type MedicalCheck } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 
-// Helper function to generate a random date within the last 30 days
-function getRandomRecentDate(): string {
-  const now = new Date();
-  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-  return new Date(
-    ninetyDaysAgo.getTime() +
-      Math.random() * (now.getTime() - ninetyDaysAgo.getTime()),
-  ).toISOString();
-}
-
-// Helper function to get a random segmentation loaded date (50% chance of being null)
-function getRandomSegmentationLoadedAt(): string | null {
-  return Math.random() < 0.5 ? getRandomRecentDate() : null;
-}
-
 export const medicalCheckRouter = createTRPCRouter({
   getAllPublic: publicProcedure.query(async ({}) => {
     const res = await fetch(
@@ -36,24 +21,35 @@ export const medicalCheckRouter = createTRPCRouter({
       "arrivedAt" | "segmentationLoadedAt"
     >[];
 
-    // Sort the medical checks by the presence of the study with the uuid "1.3.51.0.1.1.172.19.3.128.3268319.3268258"
-    const medicalChecks: MedicalCheck[] = data
-      .map((check) => ({
-        ...check,
-        arrivedAt: getRandomRecentDate(),
-        segmentationLoadedAt: getRandomSegmentationLoadedAt(),
-      }))
-      .sort((a, b) => {
-        return a.studies.some(
-          (study) => study.uuid === "1.3.51.0.1.1.172.19.3.128.3268319.3268258",
-        )
-          ? -1
-          : 1;
-      });
+    const medicalChecks: MedicalCheck[] = data.map((check) => {
+      const now = new Date();
+      const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-    console.log(
-      medicalChecks.map((check) => check.studies.map((study) => study.uuid)),
-    );
+      return {
+        ...check,
+        studies: check.studies.map((study) => {
+          const studyBaseDate = new Date(
+            ninetyDaysAgo.getTime() +
+              Math.random() * (now.getTime() - ninetyDaysAgo.getTime()),
+          );
+
+          const daysToAdd = study.id * 10;
+          const studyDate = new Date(studyBaseDate);
+          studyDate.setDate(studyDate.getDate() + daysToAdd);
+
+          return {
+            ...study,
+            arrived_at: studyDate.toISOString(),
+            segmentation_loaded_at:
+              Math.random() < 0.5
+                ? new Date(
+                    studyDate.getTime() + 24 * 60 * 60 * 1000,
+                  ).toISOString()
+                : null,
+          };
+        }),
+      };
+    });
 
     return medicalChecks;
   }),
@@ -101,8 +97,8 @@ export const medicalCheckRouter = createTRPCRouter({
 
     return (data as MedicalCheck[]).map((check) => ({
       ...check,
-      arrivedAt: check.arrivedAt ? new Date(check.arrivedAt) : undefined,
-      segmentationLoadedAt,
+      // arrivedAt: check.arrivedAt ? new Date(check.arrivedAt) : undefined,
+      // segmentationLoadedAt,
     }));
   }),
 });

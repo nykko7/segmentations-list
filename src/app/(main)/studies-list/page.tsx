@@ -2,7 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { api } from "@/trpc/server";
 import { PageHeader } from "../_components/PageHeader";
-import { columns, Study } from "./_components/columns";
+import { columns, type Study } from "./_components/columns";
 import { DataTable } from "./_components/data-table";
 
 export default async function StudiesListPage() {
@@ -26,8 +26,8 @@ export default async function StudiesListPage() {
                 ? study.status.toString()
                 : "null",
           patient_code: medicalCheck.code,
-          arrived_at: medicalCheck.arrivedAt ?? "",
-          segmentation_loaded_at: medicalCheck.segmentationLoadedAt ?? "",
+          arrived_at: study.arrived_at ?? "",
+          segmentation_loaded_at: study.segmentation_loaded_at ?? "",
           series: study.series,
         });
       });
