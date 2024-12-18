@@ -3,7 +3,7 @@ import { api } from "@/trpc/server";
 import { PageHeader } from "../../_components/PageHeader";
 import { ArrivedExamsChart } from "./_components/ArrivedExamsChart";
 import { SegmentationLoadedChart } from "./_components/SegmentationLoadedChart";
-import { MedicalCheck } from "@/server/db/schema";
+import { type MedicalCheck } from "@/server/db/schema";
 
 export default async function ML_Analytics_Page() {
   // noStore();
@@ -26,13 +26,16 @@ export default async function ML_Analytics_Page() {
 }
 
 function processArrivedExamsData(medicalChecks: MedicalCheck[]) {
-  // Group exams by date and count
+  // Group studies by date and count
   const groupedData = medicalChecks.reduce(
     (acc: Record<string, number>, check) => {
-      const date = check.arrivedAt
-        ? new Date(check.arrivedAt).toISOString().split("T")[0]!
-        : "";
-      acc[date] = (acc[date] ?? 0) + 1;
+      // Flatten all studies' arrivedAt dates
+      check.studies?.forEach((study) => {
+        if (study.arrived_at) {
+          const date = new Date(study.arrived_at).toISOString().split("T")[0]!;
+          acc[date] = (acc[date] ?? 0) + 1;
+        }
+      });
       return acc;
     },
     {},
@@ -48,12 +51,14 @@ function processSegmentationLoadedData(medicalChecks: MedicalCheck[]) {
   // Group segmentations by date and count
   const groupedData = medicalChecks.reduce(
     (acc: Record<string, number>, check) => {
-      if (check.segmentationLoadedAt) {
-        const date = new Date(check.segmentationLoadedAt)
-          .toISOString()
-          .split("T")[0]!;
-        acc[date] = (acc[date] ?? 0) + 1;
-      }
+      check.studies?.forEach((study) => {
+        if (study.segmentation_loaded_at) {
+          const date = new Date(study.segmentation_loaded_at)
+            .toISOString()
+            .split("T")[0]!;
+          acc[date] = (acc[date] ?? 0) + 1;
+        }
+      });
       return acc;
     },
     {},
