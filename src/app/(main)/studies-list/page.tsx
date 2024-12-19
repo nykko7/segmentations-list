@@ -20,7 +20,7 @@ export default async function StudiesListPage() {
           study_uuid: study.uuid,
           study_name: study.name,
           study_status:
-            study.uuid === "1.3.51.0.1.1.172.19.3.128.3268319.3268258"
+            study.uuid === "1.3.51.0.1.1.172.19.3.128.2882759.2882698"
               ? "200"
               : study.status
                 ? study.status.toString()
