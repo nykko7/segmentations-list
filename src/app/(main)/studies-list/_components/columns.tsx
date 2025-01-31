@@ -31,18 +31,46 @@ function getAccessionNumber(studyUuid: string): string {
   return parts[parts.length - 2] || "";
 }
 
+// Definir las columnas ocultas por defecto
+export const defaultHiddenColumns: Record<string, boolean> = {
+  patient_code: false, // false significa oculto
+  study_id: false, // false significa oculto
+};
+
 export const columns: ColumnDef<Study>[] = [
+  {
+    id: "patient_code", // Agregar id explícito
+    accessorKey: "patient_code",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Código de paciente" />
+    ),
+    cell: ({ row }) => <div>{row.getValue("patient_code")}</div>,
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    id: "study_id", // Agregar id explícito
+    accessorKey: "study_id",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID de estudio" />
+    ),
+    cell: ({ row }) => <div>{row.getValue("study_id")}</div>,
+    enableSorting: true,
+    enableHiding: true,
+  },
   {
     id: "study_uuid",
     accessorKey: "study_uuid",
     enableHiding: true,
-    enableSorting: false,
+    enableSorting: true,
     enableColumnFilter: true,
-    size: 0,
-    minSize: 0,
-    maxSize: 0,
-    header: () => null,
-    cell: () => null,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Accession Number" />
+    ),
+    cell: ({ row }) => {
+      const accessionNumber = getAccessionNumber(row.getValue("study_uuid"));
+      return <div>{accessionNumber}</div>;
+    },
     filterFn: (row, columnId, filterValue) => {
       if (!filterValue) return true;
       const studyUuid = row.getValue(columnId) as string;
@@ -53,6 +81,27 @@ export const columns: ColumnDef<Study>[] = [
         .includes(String(filterValue).toLowerCase());
     },
   },
+  // {
+  //   id: "study_uuid",
+  //   accessorKey: "study_uuid",
+  //   enableHiding: true,
+  //   enableSorting: false,
+  //   enableColumnFilter: true,
+  //   size: 0,
+  //   minSize: 0,
+  //   maxSize: 0,
+  //   header: () => null,
+  //   cell: () => null,
+  //   filterFn: (row, columnId, filterValue) => {
+  //     if (!filterValue) return true;
+  //     const studyUuid = row.getValue(columnId) as string;
+  //     if (!studyUuid) return false;
+  //     const accessionNumber = getAccessionNumber(studyUuid);
+  //     return accessionNumber
+  //       .toLowerCase()
+  //       .includes(String(filterValue).toLowerCase());
+  //   },
+  // },
   {
     accessorKey: "arrived_at",
     header: ({ column }) => (
@@ -60,7 +109,18 @@ export const columns: ColumnDef<Study>[] = [
     ),
     cell: ({ row }) => {
       const date = new Date(row.getValue("arrived_at"));
-      return <div>{date.toLocaleString("sv-SE", { timeZone: "UTC" })}</div>;
+      // i want to format to dd-mm-yyyy hh:mm:ss
+      const formattedDate = date.toLocaleString("es-CL", {
+        timeZone: "UTC",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+      return <div>{formattedDate}</div>;
     },
     enableSorting: true,
     enableHiding: true,
@@ -76,29 +136,23 @@ export const columns: ColumnDef<Study>[] = [
       }
 
       const date = new Date(row.getValue("segmentation_loaded_at"));
-      return <div>{date.toLocaleString("sv-SE", { timeZone: "UTC" })}</div>;
+      // i want to format to dd-mm-yyyy hh:mm:ss with 24 hours format
+      const formattedDate = date.toLocaleString("es-CL", {
+        timeZone: "UTC",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+      return <div>{formattedDate}</div>;
     },
     enableSorting: true,
     enableHiding: true,
   },
-  {
-    accessorKey: "patient_code",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Código de paciente" />
-    ),
-    cell: ({ row }) => <div>{row.getValue("patient_code")}</div>,
-    enableSorting: true,
-    enableHiding: true,
-  },
-  {
-    accessorKey: "study_id",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID de estudio" />
-    ),
-    cell: ({ row }) => <div>{row.getValue("study_id")}</div>,
-    enableSorting: true,
-    enableHiding: true,
-  },
+
   // {
   //   accessorKey: "study_name",
   //   header: ({ column }) => (

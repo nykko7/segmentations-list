@@ -34,6 +34,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { type Study } from "./columns";
 import { env } from "@/env";
+import { defaultHiddenColumns } from "./columns";
 
 interface DataTableProps<TData extends Study, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -71,7 +72,10 @@ export function DataTable<TData extends Study, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>({
+      patient_code: false,
+      study_id: false,
+    });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
@@ -268,19 +272,21 @@ export function DataTable<TData extends Study, TValue>({
                                   <h3 className="text-lg font-bold">
                                     Lesiones encontradas en el estudio:
                                   </h3>
-                                  <div className="rounded-md border">
+                                  <div className="rounded-md border bg-muted/40">
                                     <Table>
-                                      <TableHeader>
+                                      <TableHeader className="bg-muted/80">
                                         <TableRow>
                                           <TableHead>Nombre</TableHead>
                                           <TableHead>
-                                            Organo(s) afectado(s)
+                                            Órgano(s) afectado(s)
                                           </TableHead>
-                                          <TableHead>Volúmen (cm3)</TableHead>
-                                          <TableHead>
+                                          <TableHead>Volumen (cm3)</TableHead>
+                                          <TableHead className="max-w-24">
+                                            {/* <TableHead> */}
                                             Diámetro Axial Mayor (mm)
                                           </TableHead>
-                                          <TableHead>
+                                          <TableHead className="max-w-24">
+                                            {/* <TableHead> */}
                                             Diámetro Mayor (mm)
                                           </TableHead>
                                           <TableHead>Lesión objetivo</TableHead>

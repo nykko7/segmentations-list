@@ -35,7 +35,7 @@ export function DataTableToolbar<TData>({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex flex-1 items-center space-x-2">
-        <div className="w-[150px] lg:w-[250px]">
+        <div className="w-[220px] lg:w-[250px]">
           <Input
             placeholder="Filtrar por accession number..."
             value={(studyUuidColumn?.getFilterValue() as string) || ""}
