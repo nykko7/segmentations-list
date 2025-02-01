@@ -26,13 +26,20 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { ChevronRight, ChevronsRight } from "lucide-react";
+import { ChevronRight, ChevronsRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { type Patient, type Study } from "./columns";
 import { env } from "@/env";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DataTableProps<TData extends Patient, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -50,6 +57,16 @@ type Lesion = {
 
 type LesionMeasurements = {
   targetLesions: {
+    id: number;
+    site: string;
+    measurements: Record<string, number>; // studyId -> value
+  }[];
+  nonTargetLesions?: {
+    id: number;
+    site: string;
+    measurements: Record<string, number>; // studyId -> value
+  }[];
+  newLesions?: {
     id: number;
     site: string;
     measurements: Record<string, number>; // studyId -> value
@@ -110,25 +127,43 @@ export function DataTable<TData extends Patient, TValue>({
     (rowId: string) => {
       setExpandedRows((prev) => {
         const willExpand = !prev[rowId];
+        const row = table.getRowModel().rows.find((r) => r.id === rowId);
 
-        if (willExpand) {
-          const row = table.getRowModel().rows.find((r) => r.id === rowId);
-          if (row) {
-            const firstStudy = row.original.studies[0];
-            if (firstStudy) {
-              setSelectedStudies((prev) => ({
-                ...prev,
-                [rowId]: firstStudy.id.toString(),
-              }));
-            }
+        if (willExpand && row) {
+          setSelectedStudies((prev) => ({
+            ...prev,
+            [rowId]: row.original.studies[0]?.id.toString() ?? "",
+          }));
 
-            if (!lesionMeasurements[rowId]) {
-              const studies = row.original.studies;
-              const targetLesions = [
-                { site: "pulmón LII", id: 1 },
-                { site: "mediastino para traqueal", id: 2 },
-                { site: "mediastino anterior a VCS", id: 3 },
-              ].map((lesion) => ({
+          if (!lesionMeasurements[rowId]) {
+            const studies = row.original.studies;
+
+            // Target lesions remain the same as they are required
+            const targetLesions = [
+              { site: "pulmón LII", id: 1 },
+              { site: "mediastino para traqueal", id: 2 },
+              { site: "mediastino anterior a VCS", id: 3 },
+            ].map((lesion) => ({
+              ...lesion,
+              measurements: studies.reduce<Record<number, number>>(
+                (acc, study) => ({
+                  ...acc,
+                  [study.id]: Math.floor(Math.random() * 100),
+                }),
+                {},
+              ),
+            }));
+
+            // Random number of non-target lesions (0 to 3)
+            const nonTargetLesionSites = [
+              { site: "Nódulo pulmonar derecho", id: 1 },
+              { site: "Adenopatía cervical", id: 2 },
+              { site: "Nódulo hepático", id: 3 },
+            ];
+            const numNonTargetLesions = Math.floor(Math.random() * 4); // 0 to 3
+            const nonTargetLesions = nonTargetLesionSites
+              .slice(0, numNonTargetLesions)
+              .map((lesion) => ({
                 ...lesion,
                 measurements: studies.reduce<Record<number, number>>(
                   (acc, study) => ({
@@ -139,22 +174,46 @@ export function DataTable<TData extends Patient, TValue>({
                 ),
               }));
 
-              const sumByStudy = studies.reduce<Record<number, number>>(
-                (acc, study) => ({
-                  ...acc,
-                  [study.id]: targetLesions.reduce(
-                    (sum, lesion) => sum + (lesion.measurements[study.id] ?? 0),
-                    0,
-                  ),
-                }),
-                {},
-              );
-
-              setLesionMeasurements((prev) => ({
-                ...prev,
-                [rowId]: { targetLesions, sumByStudy },
+            // Random number of new lesions (0 to 2)
+            const newLesionSites = [
+              { site: "Nódulo hepático", id: 1 },
+              { site: "Lesión ósea", id: 2 },
+            ];
+            const numNewLesions = Math.floor(Math.random() * 3); // 0 to 2
+            const newLesions = newLesionSites
+              .slice(0, numNewLesions)
+              .map((lesion) => ({
+                ...lesion,
+                measurements: studies.reduce<Record<number, number>>(
+                  (acc, study) => ({
+                    ...acc,
+                    [study.id]: Math.floor(Math.random() * 100),
+                  }),
+                  {},
+                ),
               }));
-            }
+
+            const sumByStudy = studies.reduce<Record<number, number>>(
+              (acc, study) => ({
+                ...acc,
+                [study.id]: targetLesions.reduce(
+                  (sum, lesion) => sum + (lesion.measurements[study.id] ?? 0),
+                  0,
+                ),
+              }),
+              {},
+            );
+
+            setLesionMeasurements((prev) => ({
+              ...prev,
+              [rowId]: {
+                targetLesions,
+                nonTargetLesions:
+                  nonTargetLesions.length > 0 ? nonTargetLesions : undefined,
+                newLesions: newLesions.length > 0 ? newLesions : undefined,
+                sumByStudy,
+              },
+            }));
           }
         } else {
           setSelectedStudies((prev) => {
@@ -232,35 +291,123 @@ export function DataTable<TData extends Patient, TValue>({
                             Estudios asociados al paciente:
                           </h3>
                           <Tabs
-                            defaultValue={row.original.studies[0]?.id.toString()}
-                            className="w-full"
-                            onValueChange={(value) =>
+                            value={selectedStudies[row.id]}
+                            onValueChange={(value) => {
                               setSelectedStudies((prev) => ({
                                 ...prev,
                                 [row.id]: value,
-                              }))
-                            }
-                            value={
-                              selectedStudies[row.id] ??
-                              row.original.studies[0]?.id.toString()
-                            }
+                              }));
+                            }}
+                            className="w-full"
                           >
-                            <TabsList className="mb-2 flex justify-start space-x-2 px-2">
-                              <span className="font-bold">Estudios:</span>
-                              {row.original.studies.map((study, index) => (
-                                <TabsTrigger
-                                  key={study.id}
-                                  value={study.id.toString()}
-                                  className={cn({
-                                    "font-bold": index === 0,
-                                  })}
+                            <div className="mb-4 flex items-center gap-4">
+                              <span className="font-bold">Estudio:</span>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  className="px-2"
+                                  onClick={() => {
+                                    const currentIndex =
+                                      row.original.studies.findIndex(
+                                        (s) =>
+                                          s.id.toString() ===
+                                          selectedStudies[row.id],
+                                      );
+                                    if (currentIndex > 0) {
+                                      setSelectedStudies((prev) => ({
+                                        ...prev,
+                                        [row.id]:
+                                          row.original.studies[
+                                            currentIndex - 1
+                                          ]?.id.toString() ?? "",
+                                      }));
+                                    }
+                                  }}
+                                  disabled={
+                                    selectedStudies[row.id] ===
+                                    row.original.studies[0]?.id.toString()
+                                  }
                                 >
-                                  {new Date(
-                                    study.arrived_at,
-                                  ).toLocaleDateString()}
-                                </TabsTrigger>
-                              ))}
-                            </TabsList>
+                                  <ChevronLeft className="h-5 w-5" />
+                                </Button>
+
+                                <Select
+                                  value={selectedStudies[row.id]}
+                                  onValueChange={(value) => {
+                                    setSelectedStudies((prev) => ({
+                                      ...prev,
+                                      [row.id]: value,
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[180px]">
+                                    <SelectValue>
+                                      {new Date(
+                                        row.original.studies.find(
+                                          (s) =>
+                                            s.id.toString() ===
+                                            selectedStudies[row.id],
+                                        )?.arrived_at ?? "",
+                                      ).toLocaleDateString("es-CL", {
+                                        year: "numeric",
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                      })}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {row.original.studies.map((study) => (
+                                      <SelectItem
+                                        key={study.id}
+                                        value={study.id.toString()}
+                                      >
+                                        {new Date(
+                                          study.arrived_at,
+                                        ).toLocaleDateString("es-CL", {
+                                          year: "numeric",
+                                          month: "2-digit",
+                                          day: "2-digit",
+                                        })}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <Button
+                                  variant="outline"
+                                  className="px-2"
+                                  onClick={() => {
+                                    const currentIndex =
+                                      row.original.studies.findIndex(
+                                        (s) =>
+                                          s.id.toString() ===
+                                          selectedStudies[row.id],
+                                      );
+                                    if (
+                                      currentIndex <
+                                      row.original.studies.length - 1
+                                    ) {
+                                      setSelectedStudies((prev) => ({
+                                        ...prev,
+                                        [row.id]:
+                                          row.original.studies[
+                                            currentIndex + 1
+                                          ]?.id.toString() ?? "",
+                                      }));
+                                    }
+                                  }}
+                                  disabled={
+                                    selectedStudies[row.id] ===
+                                    row.original.studies[
+                                      row.original.studies.length - 1
+                                    ]?.id.toString()
+                                  }
+                                >
+                                  <ChevronRight className="h-5 w-5" />
+                                </Button>
+                              </div>
+                            </div>
+
                             {row.original.studies.map((study) => (
                               <TabsContent
                                 key={study.id}
@@ -313,40 +460,62 @@ export function DataTable<TData extends Patient, TValue>({
                                 <h3 className="mt-4 text-lg font-bold">
                                   Lesiones Target
                                 </h3>
-                                <div className="rounded-md border">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="w-12">
-                                          N°
-                                        </TableHead>
-                                        <TableHead className="min-w-[200px]">
-                                          Sitio / Subsitio Anatómico
-                                        </TableHead>
-                                        {row.original.studies.map((s) => (
-                                          <TableHead
-                                            key={s.id}
-                                            className={cn({
-                                              "bg-muted":
-                                                selectedStudies[row.id] ===
-                                                s.id.toString(),
-                                            })}
-                                          >
-                                            Estudio {s.id} / Fecha:{" "}
-                                            {new Date(
-                                              s.arrived_at,
-                                            ).toLocaleDateString()}
+                                {(lesionMeasurements[row.id]?.targetLesions
+                                  ?.length ?? 0) > 0 ? (
+                                  <div className="rounded-md border">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead className="w-12">
+                                            N°
                                           </TableHead>
+                                          <TableHead className="min-w-[200px]">
+                                            Sitio / Subsitio Anatómico
+                                          </TableHead>
+                                          {row.original.studies.map((s) => (
+                                            <TableHead
+                                              key={s.id}
+                                              className={cn({
+                                                "bg-muted":
+                                                  selectedStudies[row.id] ===
+                                                  s.id.toString(),
+                                              })}
+                                            >
+                                              Diámetro Axial Mayor (mm)
+                                              <br />
+                                              Estudio {s.id} / Fecha:{" "}
+                                              {new Date(
+                                                s.arrived_at,
+                                              ).toLocaleDateString()}
+                                            </TableHead>
+                                          ))}
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {lesionMeasurements[
+                                          row.id
+                                        ]?.targetLesions.map((lesion) => (
+                                          <TableRow key={lesion.id}>
+                                            <TableCell>{lesion.id}</TableCell>
+                                            <TableCell>{lesion.site}</TableCell>
+                                            {row.original.studies.map((s) => (
+                                              <TableCell
+                                                key={s.id}
+                                                className={cn({
+                                                  "bg-muted":
+                                                    selectedStudies[row.id] ===
+                                                    s.id.toString(),
+                                                })}
+                                              >
+                                                {lesion.measurements[s.id]}
+                                              </TableCell>
+                                            ))}
+                                          </TableRow>
                                         ))}
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {lesionMeasurements[
-                                        row.id
-                                      ]?.targetLesions.map((lesion) => (
-                                        <TableRow key={lesion.id}>
-                                          <TableCell>{lesion.id}</TableCell>
-                                          <TableCell>{lesion.site}</TableCell>
+                                        <TableRow className="font-medium">
+                                          <TableCell colSpan={2}>
+                                            Sumatoria de Diámetros
+                                          </TableCell>
                                           {row.original.studies.map((s) => (
                                             <TableCell
                                               key={s.id}
@@ -356,132 +525,141 @@ export function DataTable<TData extends Patient, TValue>({
                                                   s.id.toString(),
                                               })}
                                             >
-                                              {lesion.measurements[s.id]}
+                                              {
+                                                lesionMeasurements[row.id]
+                                                  ?.sumByStudy[s.id]
+                                              }
                                             </TableCell>
                                           ))}
                                         </TableRow>
-                                      ))}
-                                      <TableRow className="font-medium">
-                                        <TableCell colSpan={2}>
-                                          Sumatoria de Diámetros
-                                        </TableCell>
-                                        {row.original.studies.map((s) => (
-                                          <TableCell
-                                            key={s.id}
-                                            className={cn({
-                                              "bg-muted":
-                                                selectedStudies[row.id] ===
-                                                s.id.toString(),
-                                            })}
-                                          >
-                                            {
-                                              lesionMeasurements[row.id]
-                                                ?.sumByStudy[s.id]
-                                            }
-                                          </TableCell>
-                                        ))}
-                                      </TableRow>
-                                    </TableBody>
-                                  </Table>
-                                </div>
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground">
+                                    No hay lesiones target
+                                  </p>
+                                )}
 
                                 <h4 className="mt-4 text-lg font-bold">
                                   Lesiones no Target
                                 </h4>
-                                <div className="rounded-md border">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="w-12">
-                                          N°
-                                        </TableHead>
-                                        <TableHead className="min-w-[200px]">
-                                          Sitio / Subsitio Anatómico
-                                        </TableHead>
-                                        {row.original.studies.map((s) => (
-                                          <TableHead
-                                            key={s.id}
-                                            className={cn({
-                                              "bg-muted":
-                                                selectedStudies[row.id] ===
-                                                s.id.toString(),
-                                            })}
-                                          >
-                                            Estudio {s.id} / Fecha:{" "}
-                                            {new Date(
-                                              s.arrived_at,
-                                            ).toLocaleDateString()}
+                                {(lesionMeasurements[row.id]?.nonTargetLesions
+                                  ?.length ?? 0) > 0 ? (
+                                  <div className="rounded-md border">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead className="w-12">
+                                            N°
                                           </TableHead>
-                                        ))}
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {[1, 2, 3, 4, 5].map((n) => (
-                                        <TableRow key={n}>
-                                          <TableCell>{n}</TableCell>
-                                          <TableCell></TableCell>
+                                          <TableHead className="min-w-[200px]">
+                                            Sitio / Subsitio Anatómico
+                                          </TableHead>
                                           {row.original.studies.map((s) => (
-                                            <TableCell
+                                            <TableHead
                                               key={s.id}
                                               className={cn({
                                                 "bg-muted":
                                                   selectedStudies[row.id] ===
                                                   s.id.toString(),
                                               })}
-                                            ></TableCell>
+                                            >
+                                              Estudio {s.id} / Fecha:{" "}
+                                              {new Date(
+                                                s.arrived_at,
+                                              ).toLocaleDateString()}
+                                            </TableHead>
                                           ))}
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {lesionMeasurements[
+                                          row.id
+                                        ]?.nonTargetLesions?.map((lesion) => (
+                                          <TableRow key={lesion.id}>
+                                            <TableCell>{lesion.id}</TableCell>
+                                            <TableCell>{lesion.site}</TableCell>
+                                            {row.original.studies.map((s) => (
+                                              <TableCell
+                                                key={s.id}
+                                                className={cn({
+                                                  "bg-muted":
+                                                    selectedStudies[row.id] ===
+                                                    s.id.toString(),
+                                                })}
+                                              >
+                                                {lesion.measurements[s.id]}
+                                              </TableCell>
+                                            ))}
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground">
+                                    No hay lesiones no target
+                                  </p>
+                                )}
 
                                 <h4 className="mt-4 text-lg font-bold">
                                   Lesiones nuevas
                                 </h4>
-                                <div className="rounded-md border">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="min-w-[200px]">
-                                          Sitio / Subsitio Anatómico
-                                        </TableHead>
-                                        {row.original.studies.map((s) => (
-                                          <TableHead
-                                            key={s.id}
-                                            className={cn({
-                                              "bg-muted":
-                                                selectedStudies[row.id] ===
-                                                s.id.toString(),
-                                            })}
-                                          >
-                                            Estudio {s.id} / Fecha:{" "}
-                                            {new Date(
-                                              s.arrived_at,
-                                            ).toLocaleDateString()}
+                                {(lesionMeasurements[row.id]?.newLesions
+                                  ?.length ?? 0) > 0 ? (
+                                  <div className="rounded-md border">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead className="min-w-[200px]">
+                                            Sitio / Subsitio Anatómico
                                           </TableHead>
-                                        ))}
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {[1, 2, 3, 4].map((n) => (
-                                        <TableRow key={n}>
-                                          <TableCell></TableCell>
                                           {row.original.studies.map((s) => (
-                                            <TableCell
+                                            <TableHead
                                               key={s.id}
                                               className={cn({
                                                 "bg-muted":
                                                   selectedStudies[row.id] ===
                                                   s.id.toString(),
                                               })}
-                                            ></TableCell>
+                                            >
+                                              Estudio {s.id} / Fecha:{" "}
+                                              {new Date(
+                                                s.arrived_at,
+                                              ).toLocaleDateString()}
+                                            </TableHead>
                                           ))}
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {lesionMeasurements[
+                                          row.id
+                                        ]?.newLesions?.map((lesion) => (
+                                          <TableRow key={lesion.id}>
+                                            <TableCell>{lesion.site}</TableCell>
+                                            {row.original.studies.map((s) => (
+                                              <TableCell
+                                                key={s.id}
+                                                className={cn({
+                                                  "bg-muted":
+                                                    selectedStudies[row.id] ===
+                                                    s.id.toString(),
+                                                })}
+                                              >
+                                                {lesion.measurements[s.id]}
+                                              </TableCell>
+                                            ))}
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground">
+                                    No hay lesiones nuevas
+                                  </p>
+                                )}
                               </TabsContent>
                             ))}
                           </Tabs>
