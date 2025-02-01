@@ -219,17 +219,22 @@ export function DataTable<TData extends Study, TValue>({
                             Estudios asociados al paciente:
                           </h3>
                           {(() => {
-                            const relatedStudies = data
-                              .filter(
-                                (study) =>
-                                  study.patient_code ===
-                                  row.original.patient_code,
-                              )
-                              .sort(
-                                (a, b) =>
-                                  new Date(b.arrived_at).getTime() -
-                                  new Date(a.arrived_at).getTime(),
-                              );
+                            // const relatedStudies = data
+                            // .filter(
+                            //   (study) =>
+                            //     study.patient_code ===
+                            //     row.original.patient_code,
+                            // )
+                            // .sort(
+                            //   (a, b) =>
+                            //     new Date(b.arrived_at).getTime() -
+                            //     new Date(a.arrived_at).getTime(),
+                            // );
+                            const relatedStudies = data.filter(
+                              (study) =>
+                                study.patient_code ===
+                                row.original.patient_code,
+                            );
 
                             const currentStudyId =
                               selectedStudies[row.original.patient_code] ??
