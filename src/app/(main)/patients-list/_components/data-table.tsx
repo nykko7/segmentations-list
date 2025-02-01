@@ -481,12 +481,16 @@ export function DataTable<TData extends Patient, TValue>({
                                                   s.id.toString(),
                                               })}
                                             >
-                                              Diámetro Axial Mayor (mm)
-                                              <br />
+                                              {/* Diámetro Axial Mayor (mm)
+                                              <br /> */}
                                               Estudio {s.id} / Fecha:{" "}
                                               {new Date(
                                                 s.arrived_at,
-                                              ).toLocaleDateString()}
+                                              ).toLocaleDateString("es-CL", {
+                                                year: "numeric",
+                                                month: "2-digit",
+                                                day: "2-digit",
+                                              })}
                                             </TableHead>
                                           ))}
                                         </TableRow>
