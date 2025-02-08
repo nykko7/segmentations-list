@@ -462,9 +462,9 @@ export function DataTable<TData extends Patient, TValue>({
                                 </h3>
                                 {(lesionMeasurements[row.id]?.targetLesions
                                   ?.length ?? 0) > 0 ? (
-                                  <div className="rounded-md border">
+                                  <div className="rounded-md border bg-muted/40">
                                     <Table>
-                                      <TableHeader>
+                                      <TableHeader className="bg-muted/80">
                                         <TableRow>
                                           <TableHead className="w-12">
                                             N°
@@ -476,7 +476,7 @@ export function DataTable<TData extends Patient, TValue>({
                                             <TableHead
                                               key={s.id}
                                               className={cn({
-                                                "bg-muted":
+                                                "bg-primary/20":
                                                   selectedStudies[row.id] ===
                                                   s.id.toString(),
                                               })}
@@ -506,7 +506,7 @@ export function DataTable<TData extends Patient, TValue>({
                                               <TableCell
                                                 key={s.id}
                                                 className={cn({
-                                                  "bg-muted":
+                                                  "bg-primary/20":
                                                     selectedStudies[row.id] ===
                                                     s.id.toString(),
                                                 })}
@@ -524,7 +524,7 @@ export function DataTable<TData extends Patient, TValue>({
                                             <TableCell
                                               key={s.id}
                                               className={cn({
-                                                "bg-muted":
+                                                "bg-primary/20":
                                                   selectedStudies[row.id] ===
                                                   s.id.toString(),
                                               })}
@@ -550,9 +550,9 @@ export function DataTable<TData extends Patient, TValue>({
                                 </h4>
                                 {(lesionMeasurements[row.id]?.nonTargetLesions
                                   ?.length ?? 0) > 0 ? (
-                                  <div className="rounded-md border">
+                                  <div className="rounded-md border bg-muted/40">
                                     <Table>
-                                      <TableHeader>
+                                      <TableHeader className="bg-muted/80">
                                         <TableRow>
                                           <TableHead className="w-12">
                                             N°
@@ -564,7 +564,7 @@ export function DataTable<TData extends Patient, TValue>({
                                             <TableHead
                                               key={s.id}
                                               className={cn({
-                                                "bg-muted":
+                                                "bg-primary/20":
                                                   selectedStudies[row.id] ===
                                                   s.id.toString(),
                                               })}
@@ -588,7 +588,7 @@ export function DataTable<TData extends Patient, TValue>({
                                               <TableCell
                                                 key={s.id}
                                                 className={cn({
-                                                  "bg-muted":
+                                                  "bg-primary/20":
                                                     selectedStudies[row.id] ===
                                                     s.id.toString(),
                                                 })}
@@ -612,9 +612,9 @@ export function DataTable<TData extends Patient, TValue>({
                                 </h4>
                                 {(lesionMeasurements[row.id]?.newLesions
                                   ?.length ?? 0) > 0 ? (
-                                  <div className="rounded-md border">
+                                  <div className="rounded-md border bg-muted/40">
                                     <Table>
-                                      <TableHeader>
+                                      <TableHeader className="bg-muted/80">
                                         <TableRow>
                                           <TableHead className="min-w-[200px]">
                                             Sitio / Subsitio Anatómico
@@ -623,7 +623,7 @@ export function DataTable<TData extends Patient, TValue>({
                                             <TableHead
                                               key={s.id}
                                               className={cn({
-                                                "bg-muted":
+                                                "bg-primary/20":
                                                   selectedStudies[row.id] ===
                                                   s.id.toString(),
                                               })}
@@ -646,7 +646,7 @@ export function DataTable<TData extends Patient, TValue>({
                                               <TableCell
                                                 key={s.id}
                                                 className={cn({
-                                                  "bg-muted":
+                                                  "bg-primary/20":
                                                     selectedStudies[row.id] ===
                                                     s.id.toString(),
                                                 })}

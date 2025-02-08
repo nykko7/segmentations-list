@@ -47,13 +47,13 @@ export const routesPerRole: routesPerRole = {
     routes: [
       {
         icon: List,
-        label: "Gestión de pacientes",
-        href: "/patients-list",
+        label: "Gestión de estudios",
+        href: "/studies-list",
       },
       {
         icon: List,
-        label: "Gestión de estudios",
-        href: "/studies-list",
+        label: "Gestión de pacientes",
+        href: "/patients-list",
       },
       // {
       //   icon: List,
