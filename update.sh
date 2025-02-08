@@ -12,7 +12,7 @@ echo "Step 1: Stopping current process..."
 pm2 delete segmentations-list || true
 
 echo "Step 2: Pulling latest changes..."
-git pull
+sudo git pull
 
 echo "Step 3: Installing dependencies..."
 pnpm install
