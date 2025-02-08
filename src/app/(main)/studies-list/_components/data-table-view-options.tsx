@@ -23,6 +23,7 @@ function getColumnTitle<TData, TValue>(column: Column<TData, TValue>): string {
   const headerDef = column.columnDef.header;
   if (typeof headerDef === "function") {
     // Si el header es una función, busca el prop 'title'
+    // @ts-expect-error - Header function returns a React element with nested props containing the title
     const props = headerDef({ column });
     return (props.props?.title || column.id) as string;
   }
