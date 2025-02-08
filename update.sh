@@ -12,18 +12,18 @@ echo "Step 1: Stopping current process..."
 pm2 delete segmentations-list || true
 
 echo "Step 2: Pulling latest changes..."
-git pull
+sudo git pull
 
 echo "Step 3: Installing dependencies..."
-pnpm install
+sudo pnpm install
 
-echo "Step 4: Pushing database changes..."
-pnpm db:push
+# echo "Step 4: Pushing database changes..."
+# sudo pnpm db:push
 
-echo "Step 5: Building project..."
-pnpm build
+echo "Step 4: Building project..."
+sudo pnpm build
 
-echo "Step 6: Starting with PM2..."
-pm2 start --name "segmentations-list" pnpm -- start
+echo "Step 5: Starting with PM2..."
+sudo pm2 start --name "segmentations-list" pnpm -- start
 
 echo "Update process completed successfully!"
