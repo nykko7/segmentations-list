@@ -3,26 +3,68 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { DataTableColumnHeader } from "./data-table-column-header";
-import { DataTableRowActions } from "./data-table-row-actions";
 import { statusesTypes } from "../types/statuses-types";
-import { CircleHelp, CircleX } from "lucide-react";
+import { CircleX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Study = {
-  study_id: number;
-  study_name: string;
+  study_id: string;
   study_uuid: string;
-  study_status: string | null;
+  study_name: string;
+  study_status:
+    | "created"
+    | "processing"
+    | "partially_processed"
+    | "failed"
+    | "error"
+    | "fully_processed"
+    | "reviewed"
+    | "not_reviewed";
   patient_code: string;
-  series: {
-    id: number;
-    name: string;
-    uuid: string;
-    status: number;
-    orthanc_uuid: string;
-  }[];
   arrived_at: string;
-  segmentation_loaded_at: string;
+  segmentation_loaded_at: string | null;
+  series: Array<{
+    series_instance_uid: string;
+    segmentations: Array<{
+      id: string;
+      created_at: string;
+      updated_at: string;
+      is_deleted: boolean;
+      name: string;
+      segmentation_id: string | null;
+      orthanc_id: string;
+      status: string;
+      series_instance_uid: string;
+      series: string;
+      segments: Array<{
+        id: string;
+        created_at: string;
+        updated_at: string;
+        is_deleted: boolean;
+        name: string;
+        label: string;
+        tracking_id: string;
+        affected_organs: string;
+        volume: number;
+        axial_diameter: number | null;
+        coronal_diameter: number | null;
+        sagittal_diameter: number | null;
+        lession_classification: string;
+        lession_type: string;
+        segmentation_type: string;
+        window_width: number | null;
+        window_level: number | null;
+        status: string;
+        lesion_segmentation: string;
+        user: string | null;
+        reviewed_by: string | null;
+        model: string | null;
+        lesion_segments: string[];
+      }>;
+    }>;
+  }>;
+  is_basal: boolean;
+  related_studies_ids: string[];
 };
 
 function getAccessionNumber(studyUuid: string): string {
@@ -38,16 +80,16 @@ export const defaultHiddenColumns: Record<string, boolean> = {
 };
 
 export const columns: ColumnDef<Study>[] = [
-  {
-    id: "patient_code", // Agregar id explícito
-    accessorKey: "patient_code",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Código de paciente" />
-    ),
-    cell: ({ row }) => <div>{row.getValue("patient_code")}</div>,
-    enableSorting: true,
-    enableHiding: true,
-  },
+  // {
+  //   id: "patient_code", // Agregar id explícito
+  //   accessorKey: "patient_code",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Código de paciente" />
+  //   ),
+  //   cell: ({ row }) => <div>{row.getValue("patient_code")}</div>,
+  //   enableSorting: true,
+  //   enableHiding: true,
+  // },
   {
     id: "study_id", // Agregar id explícito
     accessorKey: "study_id",
@@ -65,7 +107,7 @@ export const columns: ColumnDef<Study>[] = [
     enableSorting: true,
     enableColumnFilter: true,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Accession Number" />
+      <DataTableColumnHeader column={column} title="Accession number" />
     ),
     cell: ({ row }) => {
       const accessionNumber = getAccessionNumber(row.getValue("study_uuid"));
@@ -82,86 +124,34 @@ export const columns: ColumnDef<Study>[] = [
     },
   },
   // {
-  //   id: "study_uuid",
-  //   accessorKey: "study_uuid",
-  //   enableHiding: true,
-  //   enableSorting: false,
-  //   enableColumnFilter: true,
-  //   size: 0,
-  //   minSize: 0,
-  //   maxSize: 0,
-  //   header: () => null,
-  //   cell: () => null,
-  //   filterFn: (row, columnId, filterValue) => {
-  //     if (!filterValue) return true;
-  //     const studyUuid = row.getValue(columnId) as string;
-  //     if (!studyUuid) return false;
-  //     const accessionNumber = getAccessionNumber(studyUuid);
-  //     return accessionNumber
-  //       .toLowerCase()
-  //       .includes(String(filterValue).toLowerCase());
-  //   },
+  //   accessorKey: "patient_code",
+  //   header: "Código de paciente",
   // },
   {
     accessorKey: "arrived_at",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Fecha de recepción" />
-    ),
+    header: "Fecha de recepción",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("arrived_at"));
-      // i want to format to dd-mm-yyyy hh:mm:ss
-      const formattedDate = date.toLocaleString("es-CL", {
-        timeZone: "UTC",
+      const date = new Date(row.original.arrived_at);
+      return date.toLocaleDateString("es-CL", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
       });
-      return <div>{formattedDate}</div>;
     },
-    enableSorting: true,
-    enableHiding: true,
   },
   {
     accessorKey: "segmentation_loaded_at",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Fecha de segmentación" />
-    ),
+    header: "Fecha de segmentación",
     cell: ({ row }) => {
-      if (!row.getValue("segmentation_loaded_at")) {
-        return <div>-</div>;
-      }
-
-      const date = new Date(row.getValue("segmentation_loaded_at"));
-      // i want to format to dd-mm-yyyy hh:mm:ss with 24 hours format
-      const formattedDate = date.toLocaleString("es-CL", {
-        timeZone: "UTC",
+      if (!row.original.segmentation_loaded_at) return "Pendiente";
+      const date = new Date(row.original.segmentation_loaded_at);
+      return date.toLocaleDateString("es-CL", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
       });
-      return <div>{formattedDate}</div>;
     },
-    enableSorting: true,
-    enableHiding: true,
   },
-
-  // {
-  //   accessorKey: "study_name",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Study Name" />
-  //   ),
-  //   cell: ({ row }) => <div>{row.getValue("study_name")}</div>,
-  //   enableSorting: true,
-  //   enableHiding: true,
-  // },
   {
     accessorKey: "study_status",
     header: ({ column }) => (
@@ -184,23 +174,23 @@ export const columns: ColumnDef<Study>[] = [
       }
 
       return (
-        <div className="flex w-[100px] items-center">
+        <div className="flex items-center">
           <Badge
             variant={status.variant}
             className={cn(
               status.color === "warning" && "border-yellow-500",
               status.color === "default" && "border",
+              status.color === "success" && "border-green-500",
             )}
           >
             {status.icon && (
               <status.icon
-                className={
-                  (cn(
-                    status.color === "warning" && "text-yellow-500",
-                    status.color === "default" && "text-muted-foreground",
-                  ),
-                  "mr-2 h-4 w-4")
-                }
+                className={cn(
+                  "mr-2 h-4 w-4",
+                  status.color === "warning" && "text-yellow-500",
+                  status.color === "default" && "text-muted-foreground",
+                  status.color === "success" && "text-green-500",
+                )}
               />
             )}
             {status.label}

@@ -6,99 +6,257 @@ import {
 import { type MedicalCheck } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 
+export type StudyResponse = Record<
+  string,
+  {
+    related_studies_ids: string[];
+    study_id: string;
+    study_date: string;
+    is_basal: boolean;
+    status:
+      | "reviewed"
+      | "not_reviewed"
+      | "created"
+      | "processing"
+      | "partially_processed"
+      | "failed"
+      | "error"
+      | "fully_processed";
+    series: Array<{
+      series_instance_uid: string;
+      segmentations: Array<{
+        id: string;
+        created_at: string;
+        updated_at: string;
+        is_deleted: boolean;
+        name: string;
+        segmentation_id: string | null;
+        orthanc_id: string;
+        status: string;
+        series_instance_uid: string;
+        series: string;
+        segments: Array<{
+          id: string;
+          created_at: string;
+          updated_at: string;
+          is_deleted: boolean;
+          name: string;
+          label: string;
+          tracking_id: string;
+          affected_organs: string;
+          volume: number;
+          axial_diameter: number | null;
+          coronal_diameter: number | null;
+          sagittal_diameter: number | null;
+          lession_classification: string;
+          lession_type: string;
+          segmentation_type: string;
+          window_width: number | null;
+          window_level: number | null;
+          status: string;
+          lesion_segmentation: string;
+          user: string | null;
+          reviewed_by: string | null;
+          model: string | null;
+          lesion_segments: string[];
+        }>;
+      }>;
+    }>;
+  }
+>;
+
 export const medicalCheckRouter = createTRPCRouter({
   getAllPublic: publicProcedure.query(async ({}) => {
     const res = await fetch(
-      "https://segmai.scian.cl/gateway_api/segmentation_manager/segmentation_assistant/medical_checks",
+      "https://segmai.scian.cl/gateway_api/core/pipeline/api/v1/studies/",
     );
 
     if (!res.ok) {
-      throw new Error("Failed to fetch medical checks");
+      throw new Error("Failed to fetch studies");
     }
 
-    const data = (await res.json()) as Omit<
-      MedicalCheck,
-      "arrivedAt" | "segmentationLoadedAt"
-    >[];
+    const data = (await res.json()) as StudyResponse;
 
-    const medicalChecks: MedicalCheck[] = data.map((check) => {
-      const now = new Date();
-      const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-
+    // Transform the data to match the expected format
+    const studies = Object.entries(data).map(([studyId, studyData]) => {
       return {
-        ...check,
-        studies: check.studies.map((study) => {
-          const studyBaseDate = new Date(
-            ninetyDaysAgo.getTime() +
-              Math.random() * (now.getTime() - ninetyDaysAgo.getTime()),
-          );
-
-          const daysToAdd = study.id * 10;
-          const studyDate = new Date(studyBaseDate);
-          studyDate.setDate(studyDate.getDate() + daysToAdd);
-
-          return {
-            ...study,
-            arrived_at: studyDate.toISOString(),
-            segmentation_loaded_at:
-              Math.random() < 0.5
-                ? new Date(
-                    studyDate.getTime() + 24 * 60 * 60 * 1000,
-                  ).toISOString()
-                : null,
-          };
-        }),
+        id: studyId,
+        uuid: studyId,
+        name: studyData.series[0]?.segmentations[0]?.name ?? "Unknown",
+        status: studyData.status,
+        arrived_at: studyData.study_date,
+        segmentation_loaded_at:
+          studyData.series[0]?.segmentations[0]?.segments[0]?.created_at ??
+          null,
+        series: studyData.series.map((series) => ({
+          series_instance_uid: series.series_instance_uid,
+          segmentations: series.segmentations.map((segmentation) => ({
+            id: segmentation.id,
+            created_at: segmentation.created_at,
+            updated_at: segmentation.updated_at,
+            is_deleted: segmentation.is_deleted,
+            name: segmentation.name,
+            segmentation_id: segmentation.segmentation_id,
+            orthanc_id: segmentation.orthanc_id,
+            status: segmentation.status,
+            series_instance_uid: segmentation.series_instance_uid,
+            series: segmentation.series,
+            segments: segmentation.segments.map((segment) => ({
+              id: segment.id,
+              created_at: segment.created_at,
+              updated_at: segment.updated_at,
+              is_deleted: segment.is_deleted,
+              name: segment.name,
+              label: segment.label,
+              tracking_id: segment.tracking_id,
+              affected_organs: segment.affected_organs,
+              volume: segment.volume,
+              axial_diameter: segment.axial_diameter,
+              coronal_diameter: segment.coronal_diameter,
+              sagittal_diameter: segment.sagittal_diameter,
+              lession_classification: segment.lession_classification,
+              lession_type: segment.lession_type,
+              segmentation_type: segment.segmentation_type,
+              window_width: segment.window_width,
+              window_level: segment.window_level,
+              status: segment.status,
+              lesion_segmentation: segment.lesion_segmentation,
+              user: segment.user,
+              reviewed_by: segment.reviewed_by,
+              model: segment.model,
+              lesion_segments: segment.lesion_segments,
+            })),
+          })),
+        })),
+        related_studies_ids: studyData.related_studies_ids,
+        is_basal: studyData.is_basal,
       };
     });
 
-    return medicalChecks;
+    // Group studies by their related_studies_ids to create medical checks
+    const medicalChecksMap = new Map<string, MedicalCheck>();
+
+    studies.forEach((study) => {
+      const relatedIds = study.related_studies_ids;
+      if (!relatedIds?.length) return;
+
+      const firstStudyId = relatedIds[0];
+      if (!firstStudyId) return;
+
+      if (!medicalChecksMap.has(firstStudyId)) {
+        medicalChecksMap.set(firstStudyId, {
+          id: firstStudyId,
+          code: firstStudyId.split(".").slice(-2).join("-"),
+          studies: [],
+        });
+      }
+
+      const medicalCheck = medicalChecksMap.get(firstStudyId);
+      if (medicalCheck) {
+        medicalCheck.studies.push(study);
+      }
+    });
+
+    return Array.from(medicalChecksMap.values());
   }),
 
   getAllPrivate: protectedProcedure.query(async ({ ctx }) => {
     const res = await fetch(
-      "https://segmai.scian.cl/gateway_api/core/api/v1/segmentation_assistant/medical_checks",
+      "https://segmai.scian.cl/gateway_api/core/pipeline/api/v1/studies/",
       {
         headers: ctx.headers,
         cache: "no-cache",
       },
     );
 
-    const keycloak = ctx.session.keycloak;
-
-    const accessTokenExpiresMsLeft =
-      new Date(keycloak.accessTokenExpiresAt).getTime() - Date.now();
-
-    const refreshTokenExpiresMsLeft =
-      new Date(keycloak.refreshTokenExpiresAt).getTime() - Date.now();
-
-    console.log(
-      "Access token expires in: ",
-      accessTokenExpiresMsLeft / 1000,
-      "seconds",
-    );
-
-    console.log(
-      "Refresh token expires in: ",
-      refreshTokenExpiresMsLeft / 1000,
-      "seconds",
-    );
-
     if (!res.ok) {
-      console.log(res.status);
-      console.log(res.statusText);
       if (res.status === 401 || res.status === 403) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      throw new Error("Failed to fetch medical checks");
+      throw new Error("Failed to fetch studies");
     }
 
-    const data: MedicalCheck[] = await res.json();
-    const segmentationLoadedAt = new Date();
+    const data = (await res.json()) as StudyResponse;
 
-    return (data as MedicalCheck[]).map((check) => ({
-      ...check,
-      // arrivedAt: check.arrivedAt ? new Date(check.arrivedAt) : undefined,
-      // segmentationLoadedAt,
-    }));
+    // Transform the data to match the expected format
+    const studies = Object.entries(data).map(([studyId, studyData]) => {
+      return {
+        id: studyId,
+        uuid: studyId,
+        name: studyData.series[0]?.segmentations[0]?.name ?? "Unknown",
+        status: studyData.status,
+        arrived_at: studyData.study_date,
+        segmentation_loaded_at:
+          studyData.series[0]?.segmentations[0]?.segments[0]?.created_at ??
+          null,
+        series: studyData.series.map((series) => ({
+          series_instance_uid: series.series_instance_uid,
+          segmentations: series.segmentations.map((segmentation) => ({
+            id: segmentation.id,
+            created_at: segmentation.created_at,
+            updated_at: segmentation.updated_at,
+            is_deleted: segmentation.is_deleted,
+            name: segmentation.name,
+            segmentation_id: segmentation.segmentation_id,
+            orthanc_id: segmentation.orthanc_id,
+            status: segmentation.status,
+            series_instance_uid: segmentation.series_instance_uid,
+            series: segmentation.series,
+            segments: segmentation.segments.map((segment) => ({
+              id: segment.id,
+              created_at: segment.created_at,
+              updated_at: segment.updated_at,
+              is_deleted: segment.is_deleted,
+              name: segment.name,
+              label: segment.label,
+              tracking_id: segment.tracking_id,
+              affected_organs: segment.affected_organs,
+              volume: segment.volume,
+              axial_diameter: segment.axial_diameter,
+              coronal_diameter: segment.coronal_diameter,
+              sagittal_diameter: segment.sagittal_diameter,
+              lession_classification: segment.lession_classification,
+              lession_type: segment.lession_type,
+              segmentation_type: segment.segmentation_type,
+              window_width: segment.window_width,
+              window_level: segment.window_level,
+              status: segment.status,
+              lesion_segmentation: segment.lesion_segmentation,
+              user: segment.user,
+              reviewed_by: segment.reviewed_by,
+              model: segment.model,
+              lesion_segments: segment.lesion_segments,
+            })),
+          })),
+        })),
+        related_studies_ids: studyData.related_studies_ids,
+        is_basal: studyData.is_basal,
+      };
+    });
+
+    const medicalChecksMap = new Map<string, MedicalCheck>();
+
+    studies.forEach((study) => {
+      const relatedIds = study.related_studies_ids;
+      if (!relatedIds?.length) return;
+
+      const firstStudyId = relatedIds[0];
+      if (!firstStudyId) return;
+
+      if (!medicalChecksMap.has(firstStudyId)) {
+        medicalChecksMap.set(firstStudyId, {
+          id: firstStudyId,
+          code: firstStudyId.split(".").slice(-2).join("-"),
+          studies: [],
+        });
+      }
+
+      const medicalCheck = medicalChecksMap.get(firstStudyId);
+      if (medicalCheck) {
+        medicalCheck.studies.push(study);
+      }
+    });
+
+    return Array.from(medicalChecksMap.values());
   }),
 });

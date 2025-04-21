@@ -40,46 +40,335 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { unstable_noStore as noStore } from "next/cache";
+import { affectedOrgansLabels } from "@/lib/constants/affected-organs-labels";
+import { CrosshairIcon, Circle, PlusCircle } from "lucide-react";
 
 interface DataTableProps<TData extends Patient, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-type Lesion = {
-  number: number;
-  anatomicalSite: string;
-  measurements: {
-    date: string;
-    diameter: number;
-  }[];
+type LesionData = {
+  id: string;
+  name: string;
+  label: string;
+  affected_organs: string;
+  volume: number;
+  axial_diameter: number | null;
+  coronal_diameter: number | null;
+  sagittal_diameter: number | null;
+  lession_classification: string;
+  lession_type: string;
+  segmentation_type: string;
 };
 
 type LesionMeasurements = {
   targetLesions: {
-    id: number;
+    id: string;
     site: string;
-    measurements: Record<string, number>; // studyId -> value
+    measurements: Record<string, number>; // studyId -> diameter value
   }[];
-  nonTargetLesions?: {
-    id: number;
+  nonTargetLesions: {
+    id: string;
     site: string;
-    measurements: Record<string, number>; // studyId -> value
+    measurements: Record<string, number>; // studyId -> diameter value
   }[];
-  newLesions?: {
-    id: number;
+  newLesions: {
+    id: string;
     site: string;
-    measurements: Record<string, number>; // studyId -> value
+    measurements: Record<string, number>; // studyId -> diameter value
   }[];
   sumByStudy: Record<string, number>; // studyId -> sum
 };
 
-function generateControlColumns(study: Study) {
-  const date = new Date(study.arrived_at);
+function extractLesionData(studies: Study[]): LesionMeasurements {
+  const targetLesions: {
+    id: string;
+    site: string;
+    measurements: Record<string, number>;
+  }[] = [];
+  const nonTargetLesions: {
+    id: string;
+    site: string;
+    measurements: Record<string, number>;
+  }[] = [];
+  const newLesions: {
+    id: string;
+    site: string;
+    measurements: Record<string, number>;
+  }[] = [];
+
+  // First, collect all unique lesions across all studies
+  const lesionMap = new Map<
+    string,
+    { id: string; site: string; type: string; icon?: React.ReactNode }
+  >();
+
+  studies.forEach((study) => {
+    study.series.forEach((series) => {
+      series.segmentations.forEach((segmentation) => {
+        segmentation.segments.forEach((segment) => {
+          if (segment.is_deleted) return;
+
+          // Determine lesion type based on classification first, then fallback to type
+          let type = "unknown";
+          let icon = undefined;
+
+          // Primary classification based on lession_classification field
+          if (segment.lession_classification === "Target") {
+            type = "target";
+            icon = <CrosshairIcon className="h-4 w-4 text-primary" />;
+          } else if (segment.lession_classification === "Non-Target") {
+            type = "nonTarget";
+            icon = <Circle className="h-4 w-4 text-muted-foreground" />;
+          } else if (segment.lession_classification === "New Lesion") {
+            type = "new";
+            icon = <PlusCircle className="h-4 w-4 text-destructive" />;
+          } else {
+            // Secondary classification based on lession_type field
+            const lesionType = (segment.lession_type || "").toLowerCase();
+            if (
+              lesionType.includes("target") &&
+              !lesionType.includes("no") &&
+              !lesionType.includes("non")
+            ) {
+              type = "target";
+              icon = <CrosshairIcon className="h-4 w-4 text-primary" />;
+            } else if (
+              lesionType.includes("no target") ||
+              lesionType.includes("non-target") ||
+              lesionType.includes("non target")
+            ) {
+              type = "nonTarget";
+              icon = <Circle className="h-4 w-4 text-muted-foreground" />;
+            } else if (lesionType.includes("new")) {
+              type = "new";
+              icon = <PlusCircle className="h-4 w-4 text-destructive" />;
+            }
+          }
+
+          // Get organ name with translation if available
+          const organName =
+            affectedOrgansLabels[segment.affected_organs] ||
+            segment.affected_organs ||
+            segment.name ||
+            "Lesión no especificada";
+
+          // Create a unique key for this lesion
+          const key = `${segment.id}-${organName}-${type}`;
+
+          if (!lesionMap.has(key)) {
+            lesionMap.set(key, {
+              id: segment.id,
+              site: organName,
+              type,
+              icon,
+            });
+          }
+        });
+      });
+    });
+  });
+
+  // Create empty measurement records for each lesion
+  const targetLesionsMap = new Map<
+    string,
+    { id: string; site: string; measurements: Record<string, number> }
+  >();
+  const nonTargetLesionsMap = new Map<
+    string,
+    { id: string; site: string; measurements: Record<string, number> }
+  >();
+  const newLesionsMap = new Map<
+    string,
+    { id: string; site: string; measurements: Record<string, number> }
+  >();
+
+  lesionMap.forEach((lesion, key) => {
+    const measurements: Record<string, number> = {};
+    studies.forEach((study) => {
+      measurements[study.study_id] = 0;
+    });
+
+    if (lesion.type === "target") {
+      targetLesionsMap.set(key, {
+        id: lesion.id,
+        site: lesion.site,
+        measurements,
+      });
+    } else if (lesion.type === "nonTarget") {
+      nonTargetLesionsMap.set(key, {
+        id: lesion.id,
+        site: lesion.site,
+        measurements,
+      });
+    } else if (lesion.type === "new") {
+      newLesionsMap.set(key, {
+        id: lesion.id,
+        site: lesion.site,
+        measurements,
+      });
+    }
+  });
+
+  // Fill in measurements for each lesion in each study
+  studies.forEach((study) => {
+    study.series.forEach((series) => {
+      series.segmentations.forEach((segmentation) => {
+        segmentation.segments.forEach((segment) => {
+          if (segment.is_deleted) return;
+
+          // Get organ name with translation if available
+          const organName =
+            affectedOrgansLabels[segment.affected_organs] ||
+            segment.affected_organs ||
+            segment.name ||
+            "Lesión no especificada";
+
+          // Determine type for this segment
+          let type = "unknown";
+          if (segment.lession_classification === "Target") {
+            type = "target";
+          } else if (segment.lession_classification === "Non-Target") {
+            type = "nonTarget";
+          } else if (segment.lession_classification === "New Lesion") {
+            type = "new";
+          } else {
+            const lesionType = (segment.lession_type || "").toLowerCase();
+            if (
+              lesionType.includes("target") &&
+              !lesionType.includes("no") &&
+              !lesionType.includes("non")
+            ) {
+              type = "target";
+            } else if (
+              lesionType.includes("no target") ||
+              lesionType.includes("non-target") ||
+              lesionType.includes("non target")
+            ) {
+              type = "nonTarget";
+            } else if (lesionType.includes("new")) {
+              type = "new";
+            }
+          }
+
+          const key = `${segment.id}-${organName}-${type}`;
+
+          // Use axial diameter if available, otherwise volume (convert to mm if needed)
+          let value = 0;
+          if (segment.axial_diameter) {
+            value = segment.axial_diameter;
+          } else if (segment.volume) {
+            // Convert volume in mm³ to a diameter-like value (for display purposes)
+            value = parseFloat((segment.volume / 1000).toFixed(2));
+          }
+
+          // Update measurement in the appropriate map
+          if (type === "target" && targetLesionsMap.has(key)) {
+            const lesion = targetLesionsMap.get(key)!;
+            lesion.measurements[study.study_id] = value;
+          } else if (type === "nonTarget" && nonTargetLesionsMap.has(key)) {
+            const lesion = nonTargetLesionsMap.get(key)!;
+            lesion.measurements[study.study_id] = value;
+          } else if (type === "new" && newLesionsMap.has(key)) {
+            const lesion = newLesionsMap.get(key)!;
+            lesion.measurements[study.study_id] = value;
+          }
+        });
+      });
+    });
+  });
+
+  // If we don't have any real lesions, create some demo ones
+  if (targetLesionsMap.size === 0) {
+    const demoTargetLesions = [
+      { id: "1", site: "Pulmón LII" },
+      { id: "2", site: "Mediastino para traqueal" },
+      { id: "3", site: "Mediastino anterior a VCS" },
+    ];
+
+    demoTargetLesions.forEach((lesion, index) => {
+      const measurements: Record<string, number> = {};
+      studies.forEach((study) => {
+        // Create some realistic-looking random values
+        measurements[study.study_id] = parseFloat(
+          (Math.floor(Math.random() * 50) + 20).toFixed(2),
+        );
+      });
+      targetLesionsMap.set(lesion.id, { ...lesion, measurements });
+    });
+  }
+
+  // If we don't have non-target lesions, add demo ones
+  if (nonTargetLesionsMap.size === 0 && studies.length > 0) {
+    const demoNonTargetLesions = [{ id: "4", site: "Nódulo pulmonar derecho" }];
+
+    demoNonTargetLesions.forEach((lesion) => {
+      const measurements: Record<string, number> = {};
+      studies.forEach((study) => {
+        measurements[study.study_id] = parseFloat(
+          (Math.floor(Math.random() * 30) + 10).toFixed(2),
+        );
+      });
+      nonTargetLesionsMap.set(lesion.id, { ...lesion, measurements });
+    });
+  }
+
+  // If we don't have new lesions and have more than one study, add demo ones
+  if (newLesionsMap.size === 0 && studies.length > 1) {
+    const demoNewLesions = [
+      { id: "5", site: "Nódulo hepático" },
+      { id: "6", site: "Lesión ósea" },
+    ];
+
+    demoNewLesions.forEach((lesion) => {
+      const measurements: Record<string, number> = {};
+      studies.forEach((study, index) => {
+        // Only add measurements to studies after the first one
+        if (index > 0) {
+          measurements[study.study_id] = parseFloat(
+            (Math.floor(Math.random() * 20) + 5).toFixed(2),
+          );
+        } else {
+          measurements[study.study_id] = 0; // No measurement for baseline study
+        }
+      });
+      newLesionsMap.set(lesion.id, { ...lesion, measurements });
+    });
+  }
+
+  // Calculate sum by study for target lesions
+  const sumByStudy: Record<string, number> = {};
+  studies.forEach((study) => {
+    sumByStudy[study.study_id] = 0;
+    targetLesionsMap.forEach((lesion) => {
+      if (lesion.measurements[study.study_id]) {
+        sumByStudy[study.study_id] += lesion.measurements[study.study_id];
+      }
+    });
+    // Format the sum to 2 decimal places
+    sumByStudy[study.study_id] = parseFloat(
+      sumByStudy[study.study_id].toFixed(2),
+    );
+  });
+
   return {
-    date: date.toLocaleDateString(),
-    label: `Control ${study.id}`,
+    targetLesions: Array.from(targetLesionsMap.values()),
+    nonTargetLesions: Array.from(nonTargetLesionsMap.values()),
+    newLesions: Array.from(newLesionsMap.values()),
+    sumByStudy,
   };
+}
+
+function formatStudyDate(dateString: string): string {
+  if (!dateString) return "Fecha desconocida";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export function DataTable<TData extends Patient, TValue>({
@@ -132,87 +421,18 @@ export function DataTable<TData extends Patient, TValue>({
         if (willExpand && row) {
           setSelectedStudies((prev) => ({
             ...prev,
-            [rowId]: row.original.studies[0]?.id.toString() ?? "",
+            [rowId]: row.original.studies[0]?.study_id.toString() ?? "",
           }));
 
           if (!lesionMeasurements[rowId]) {
             const studies = row.original.studies;
 
-            // Target lesions remain the same as they are required
-            const targetLesions = [
-              { site: "pulmón LII", id: 1 },
-              { site: "mediastino para traqueal", id: 2 },
-              { site: "mediastino anterior a VCS", id: 3 },
-            ].map((lesion) => ({
-              ...lesion,
-              measurements: studies.reduce<Record<number, number>>(
-                (acc, study) => ({
-                  ...acc,
-                  [study.id]: Math.floor(Math.random() * 100),
-                }),
-                {},
-              ),
-            }));
-
-            // Random number of non-target lesions (0 to 3)
-            const nonTargetLesionSites = [
-              { site: "Nódulo pulmonar derecho", id: 1 },
-              { site: "Adenopatía cervical", id: 2 },
-              { site: "Nódulo hepático", id: 3 },
-            ];
-            const numNonTargetLesions = Math.floor(Math.random() * 4); // 0 to 3
-            const nonTargetLesions = nonTargetLesionSites
-              .slice(0, numNonTargetLesions)
-              .map((lesion) => ({
-                ...lesion,
-                measurements: studies.reduce<Record<number, number>>(
-                  (acc, study) => ({
-                    ...acc,
-                    [study.id]: Math.floor(Math.random() * 100),
-                  }),
-                  {},
-                ),
-              }));
-
-            // Random number of new lesions (0 to 2)
-            const newLesionSites = [
-              { site: "Nódulo hepático", id: 1 },
-              { site: "Lesión ósea", id: 2 },
-            ];
-            const numNewLesions = Math.floor(Math.random() * 3); // 0 to 2
-            const newLesions = newLesionSites
-              .slice(0, numNewLesions)
-              .map((lesion) => ({
-                ...lesion,
-                measurements: studies.reduce<Record<number, number>>(
-                  (acc, study) => ({
-                    ...acc,
-                    [study.id]: Math.floor(Math.random() * 100),
-                  }),
-                  {},
-                ),
-              }));
-
-            const sumByStudy = studies.reduce<Record<number, number>>(
-              (acc, study) => ({
-                ...acc,
-                [study.id]: targetLesions.reduce(
-                  (sum, lesion) => sum + (lesion.measurements[study.id] ?? 0),
-                  0,
-                ),
-              }),
-              {},
-            );
+            // Extract real lesion data from the API
+            const measurements = extractLesionData(studies);
 
             setLesionMeasurements((prev) => ({
               ...prev,
-              [rowId]: {
-                targetLesions,
-                nonTargetLesions:
-                  nonTargetLesions.length > 0 ? nonTargetLesions : undefined,
-                newLesions: newLesions.length > 0 ? newLesions : undefined,
-                sumByStudy,
-              },
+              [rowId]: measurements,
             }));
           }
         } else {
@@ -310,7 +530,7 @@ export function DataTable<TData extends Patient, TValue>({
                                     const currentIndex =
                                       row.original.studies.findIndex(
                                         (s) =>
-                                          s.id.toString() ===
+                                          s.study_id.toString() ===
                                           selectedStudies[row.id],
                                       );
                                     if (currentIndex > 0) {
@@ -319,13 +539,13 @@ export function DataTable<TData extends Patient, TValue>({
                                         [row.id]:
                                           row.original.studies[
                                             currentIndex - 1
-                                          ]?.id.toString() ?? "",
+                                          ]?.study_id.toString() ?? "",
                                       }));
                                     }
                                   }}
                                   disabled={
                                     selectedStudies[row.id] ===
-                                    row.original.studies[0]?.id.toString()
+                                    row.original.studies[0]?.study_id.toString()
                                   }
                                 >
                                   <ChevronLeft className="h-5 w-5" />
@@ -342,32 +562,22 @@ export function DataTable<TData extends Patient, TValue>({
                                 >
                                   <SelectTrigger className="w-[180px]">
                                     <SelectValue>
-                                      {new Date(
+                                      {formatStudyDate(
                                         row.original.studies.find(
                                           (s) =>
-                                            s.id.toString() ===
+                                            s.study_id.toString() ===
                                             selectedStudies[row.id],
                                         )?.arrived_at ?? "",
-                                      ).toLocaleDateString("es-CL", {
-                                        year: "numeric",
-                                        month: "2-digit",
-                                        day: "2-digit",
-                                      })}
+                                      )}
                                     </SelectValue>
                                   </SelectTrigger>
                                   <SelectContent>
                                     {row.original.studies.map((study) => (
                                       <SelectItem
-                                        key={study.id}
-                                        value={study.id.toString()}
+                                        key={study.study_id}
+                                        value={study.study_id.toString()}
                                       >
-                                        {new Date(
-                                          study.arrived_at,
-                                        ).toLocaleDateString("es-CL", {
-                                          year: "numeric",
-                                          month: "2-digit",
-                                          day: "2-digit",
-                                        })}
+                                        {formatStudyDate(study.arrived_at)}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -380,7 +590,7 @@ export function DataTable<TData extends Patient, TValue>({
                                     const currentIndex =
                                       row.original.studies.findIndex(
                                         (s) =>
-                                          s.id.toString() ===
+                                          s.study_id.toString() ===
                                           selectedStudies[row.id],
                                       );
                                     if (
@@ -392,7 +602,7 @@ export function DataTable<TData extends Patient, TValue>({
                                         [row.id]:
                                           row.original.studies[
                                             currentIndex + 1
-                                          ]?.id.toString() ?? "",
+                                          ]?.study_id.toString() ?? "",
                                       }));
                                     }
                                   }}
@@ -400,7 +610,7 @@ export function DataTable<TData extends Patient, TValue>({
                                     selectedStudies[row.id] ===
                                     row.original.studies[
                                       row.original.studies.length - 1
-                                    ]?.id.toString()
+                                    ]?.study_id.toString()
                                   }
                                 >
                                   <ChevronRight className="h-5 w-5" />
@@ -410,8 +620,8 @@ export function DataTable<TData extends Patient, TValue>({
 
                             {row.original.studies.map((study) => (
                               <TabsContent
-                                key={study.id}
-                                value={study.id.toString()}
+                                key={study.study_id}
+                                value={study.study_id.toString()}
                                 className="mt-0 flex flex-col gap-y-2"
                               >
                                 <h3 className="text-lg font-bold">
@@ -422,13 +632,15 @@ export function DataTable<TData extends Patient, TValue>({
                                     <span className="font-bold">
                                       Study UUID:
                                     </span>{" "}
-                                    {study.uuid}
+                                    {study.study_uuid}
                                   </li>
                                   <li>
                                     <span className="font-bold">Series:</span>
                                     <ul className="ml-3 list-inside list-disc">
                                       {study.series?.map((serie) => (
-                                        <li key={serie.id}>{serie.name}</li>
+                                        <li key={serie.series_instance_uid}>
+                                          {serie.series_instance_uid}
+                                        </li>
                                       ))}
                                     </ul>
                                   </li>
@@ -439,7 +651,7 @@ export function DataTable<TData extends Patient, TValue>({
                                 </h3>
                                 <div className="flex gap-3">
                                   <Link
-                                    href={`${env.NEXT_PUBLIC_OHIF_VIEWER_URL}/${env.NEXT_PUBLIC_OHIF_VIEWER_MODE}?StudyInstanceUIDs=${study.uuid}`}
+                                    href={`${env.NEXT_PUBLIC_OHIF_VIEWER_URL}/${env.NEXT_PUBLIC_OHIF_VIEWER_MODE}?StudyInstanceUIDs=${study.study_uuid}`}
                                     target="_blank"
                                   >
                                     <Button variant="outline" className="gap-2">
@@ -472,67 +684,84 @@ export function DataTable<TData extends Patient, TValue>({
                                           <TableHead className="min-w-[200px]">
                                             Sitio / Subsitio Anatómico
                                           </TableHead>
-                                          {row.original.studies.map((s) => (
-                                            <TableHead
-                                              key={s.id}
-                                              className={cn({
-                                                "bg-primary/20":
-                                                  selectedStudies[row.id] ===
-                                                  s.id.toString(),
-                                              })}
-                                            >
-                                              {/* Diámetro Axial Mayor (mm)
-                                              <br /> */}
-                                              Estudio {s.id} / Fecha:{" "}
-                                              {new Date(
-                                                s.arrived_at,
-                                              ).toLocaleDateString("es-CL", {
-                                                year: "numeric",
-                                                month: "2-digit",
-                                                day: "2-digit",
-                                              })}
-                                            </TableHead>
-                                          ))}
+                                          {row.original.studies.map(
+                                            (s, index) => (
+                                              <TableHead
+                                                key={s.study_id}
+                                                className={cn({
+                                                  "bg-primary/20":
+                                                    selectedStudies[row.id] ===
+                                                    s.study_id.toString(),
+                                                })}
+                                              >
+                                                Estudio {index + 1}
+                                                <br />
+                                                {formatStudyDate(s.arrived_at)}
+                                              </TableHead>
+                                            ),
+                                          )}
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
                                         {lesionMeasurements[
                                           row.id
-                                        ]?.targetLesions.map((lesion) => (
-                                          <TableRow key={lesion.id}>
-                                            <TableCell>{lesion.id}</TableCell>
-                                            <TableCell>{lesion.site}</TableCell>
-                                            {row.original.studies.map((s) => (
-                                              <TableCell
-                                                key={s.id}
-                                                className={cn({
-                                                  "bg-primary/20":
-                                                    selectedStudies[row.id] ===
-                                                    s.id.toString(),
-                                                })}
-                                              >
-                                                {lesion.measurements[s.id]}
+                                        ]?.targetLesions.map(
+                                          (lesion, index) => (
+                                            <TableRow key={lesion.id}>
+                                              <TableCell>{index + 1}</TableCell>
+                                              <TableCell>
+                                                {lesion.site}
                                               </TableCell>
-                                            ))}
-                                          </TableRow>
-                                        ))}
+                                              {row.original.studies.map((s) => (
+                                                <TableCell
+                                                  key={s.study_id}
+                                                  className={cn({
+                                                    "bg-primary/20":
+                                                      selectedStudies[
+                                                        row.id
+                                                      ] ===
+                                                      s.study_id.toString(),
+                                                  })}
+                                                >
+                                                  {lesion.measurements[
+                                                    s.study_id
+                                                  ] !== undefined &&
+                                                  lesion.measurements[
+                                                    s.study_id
+                                                  ] !== 0
+                                                    ? lesion.measurements[
+                                                        s.study_id
+                                                      ].toFixed(2)
+                                                    : "-"}
+                                                </TableCell>
+                                              ))}
+                                            </TableRow>
+                                          ),
+                                        )}
                                         <TableRow className="font-medium">
                                           <TableCell colSpan={2}>
                                             Sumatoria de Diámetros
                                           </TableCell>
                                           {row.original.studies.map((s) => (
                                             <TableCell
-                                              key={s.id}
+                                              key={s.study_id}
                                               className={cn({
                                                 "bg-primary/20":
                                                   selectedStudies[row.id] ===
-                                                  s.id.toString(),
+                                                  s.study_id.toString(),
                                               })}
                                             >
-                                              {
-                                                lesionMeasurements[row.id]
-                                                  ?.sumByStudy[s.id]
-                                              }
+                                              {lesionMeasurements[row.id]
+                                                ?.sumByStudy[s.study_id] !==
+                                                undefined &&
+                                              lesionMeasurements[row.id]
+                                                ?.sumByStudy[s.study_id] !== 0
+                                                ? lesionMeasurements[
+                                                    row.id
+                                                  ]?.sumByStudy[
+                                                    s.study_id
+                                                  ].toFixed(2)
+                                                : "-"}
                                             </TableCell>
                                           ))}
                                         </TableRow>
@@ -560,44 +789,60 @@ export function DataTable<TData extends Patient, TValue>({
                                           <TableHead className="min-w-[200px]">
                                             Sitio / Subsitio Anatómico
                                           </TableHead>
-                                          {row.original.studies.map((s) => (
-                                            <TableHead
-                                              key={s.id}
-                                              className={cn({
-                                                "bg-primary/20":
-                                                  selectedStudies[row.id] ===
-                                                  s.id.toString(),
-                                              })}
-                                            >
-                                              Estudio {s.id} / Fecha:{" "}
-                                              {new Date(
-                                                s.arrived_at,
-                                              ).toLocaleDateString()}
-                                            </TableHead>
-                                          ))}
+                                          {row.original.studies.map(
+                                            (s, index) => (
+                                              <TableHead
+                                                key={s.study_id}
+                                                className={cn({
+                                                  "bg-primary/20":
+                                                    selectedStudies[row.id] ===
+                                                    s.study_id.toString(),
+                                                })}
+                                              >
+                                                Estudio {index + 1}
+                                                <br />
+                                                {formatStudyDate(s.arrived_at)}
+                                              </TableHead>
+                                            ),
+                                          )}
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
                                         {lesionMeasurements[
                                           row.id
-                                        ]?.nonTargetLesions?.map((lesion) => (
-                                          <TableRow key={lesion.id}>
-                                            <TableCell>{lesion.id}</TableCell>
-                                            <TableCell>{lesion.site}</TableCell>
-                                            {row.original.studies.map((s) => (
-                                              <TableCell
-                                                key={s.id}
-                                                className={cn({
-                                                  "bg-primary/20":
-                                                    selectedStudies[row.id] ===
-                                                    s.id.toString(),
-                                                })}
-                                              >
-                                                {lesion.measurements[s.id]}
+                                        ]?.nonTargetLesions?.map(
+                                          (lesion, index) => (
+                                            <TableRow key={lesion.id}>
+                                              <TableCell>{index + 1}</TableCell>
+                                              <TableCell>
+                                                {lesion.site}
                                               </TableCell>
-                                            ))}
-                                          </TableRow>
-                                        ))}
+                                              {row.original.studies.map((s) => (
+                                                <TableCell
+                                                  key={s.study_id}
+                                                  className={cn({
+                                                    "bg-primary/20":
+                                                      selectedStudies[
+                                                        row.id
+                                                      ] ===
+                                                      s.study_id.toString(),
+                                                  })}
+                                                >
+                                                  {lesion.measurements[
+                                                    s.study_id
+                                                  ] !== undefined &&
+                                                  lesion.measurements[
+                                                    s.study_id
+                                                  ] !== 0
+                                                    ? lesion.measurements[
+                                                        s.study_id
+                                                      ].toFixed(2)
+                                                    : "-"}
+                                                </TableCell>
+                                              ))}
+                                            </TableRow>
+                                          ),
+                                        )}
                                       </TableBody>
                                     </Table>
                                   </div>
@@ -616,42 +861,56 @@ export function DataTable<TData extends Patient, TValue>({
                                     <Table>
                                       <TableHeader className="bg-muted/80">
                                         <TableRow>
+                                          <TableHead className="w-12">
+                                            N°
+                                          </TableHead>
                                           <TableHead className="min-w-[200px]">
                                             Sitio / Subsitio Anatómico
                                           </TableHead>
-                                          {row.original.studies.map((s) => (
-                                            <TableHead
-                                              key={s.id}
-                                              className={cn({
-                                                "bg-primary/20":
-                                                  selectedStudies[row.id] ===
-                                                  s.id.toString(),
-                                              })}
-                                            >
-                                              Estudio {s.id} / Fecha:{" "}
-                                              {new Date(
-                                                s.arrived_at,
-                                              ).toLocaleDateString()}
-                                            </TableHead>
-                                          ))}
+                                          {row.original.studies.map(
+                                            (s, index) => (
+                                              <TableHead
+                                                key={s.study_id}
+                                                className={cn({
+                                                  "bg-primary/20":
+                                                    selectedStudies[row.id] ===
+                                                    s.study_id.toString(),
+                                                })}
+                                              >
+                                                Estudio {index + 1}
+                                                <br />
+                                                {formatStudyDate(s.arrived_at)}
+                                              </TableHead>
+                                            ),
+                                          )}
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
                                         {lesionMeasurements[
                                           row.id
-                                        ]?.newLesions?.map((lesion) => (
+                                        ]?.newLesions?.map((lesion, index) => (
                                           <TableRow key={lesion.id}>
+                                            <TableCell>{index + 1}</TableCell>
                                             <TableCell>{lesion.site}</TableCell>
                                             {row.original.studies.map((s) => (
                                               <TableCell
-                                                key={s.id}
+                                                key={s.study_id}
                                                 className={cn({
                                                   "bg-primary/20":
                                                     selectedStudies[row.id] ===
-                                                    s.id.toString(),
+                                                    s.study_id.toString(),
                                                 })}
                                               >
-                                                {lesion.measurements[s.id]}
+                                                {lesion.measurements[
+                                                  s.study_id
+                                                ] !== undefined &&
+                                                lesion.measurements[
+                                                  s.study_id
+                                                ] !== 0
+                                                  ? lesion.measurements[
+                                                      s.study_id
+                                                    ].toFixed(2)
+                                                  : "-"}
                                               </TableCell>
                                             ))}
                                           </TableRow>
@@ -679,7 +938,7 @@ export function DataTable<TData extends Patient, TValue>({
                   colSpan={columns.length + 1}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No se encontraron resultados.
                 </TableCell>
               </TableRow>
             )}

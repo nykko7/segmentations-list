@@ -27,7 +27,16 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight,
+  Target,
+  Circle,
+  PlusCircle,
+  CircleDashed,
+  CrosshairIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -41,35 +50,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { affectedOrgansLabels } from "@/lib/constants/affected-organs-labels";
 
 interface DataTableProps<TData extends Study, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-}
-
-function generateRandomLesions(
-  count: number = Math.floor(Math.random() * 4) + 1,
-) {
-  const organs = [
-    "Pulmón derecho",
-    "Pulmón izquierdo",
-    "Hígado",
-    "Riñón",
-    "Estómago",
-    "Páncreas",
-  ];
-  const types = ["Tumor", "Nodo linfático maligno", "Metástasis"];
-  const targetTypes = ["Objetivo", "No objetivo"];
-
-  return Array.from({ length: count }, (_, i) => ({
-    name: `Lesión ${i + 1}`,
-    organ: organs[Math.floor(Math.random() * organs.length)],
-    volume: (Math.random() * 10).toFixed(1),
-    axialDiameter: Math.floor(Math.random() * 20) + 5,
-    majorDiameter: Math.floor(Math.random() * 25) + 10,
-    target: targetTypes[Math.floor(Math.random() * targetTypes.length)],
-    type: types[Math.floor(Math.random() * types.length)],
-  }));
 }
 
 export function DataTable<TData extends Study, TValue>({
@@ -92,6 +77,13 @@ export function DataTable<TData extends Study, TValue>({
   const [selectedStudies, setSelectedStudies] = React.useState<
     Record<string, string>
   >({});
+
+  const getRowKey = React.useCallback(
+    (patientCode: string, studyId: string) => {
+      return `${patientCode}-${studyId}`;
+    },
+    [],
+  );
 
   const table = useReactTable({
     data,
@@ -122,12 +114,13 @@ export function DataTable<TData extends Study, TValue>({
         if (newExpandedState && rowData) {
           setSelectedStudies((prev) => ({
             ...prev,
-            [rowData.patient_code]: rowData.study_id.toString(),
+            [getRowKey(rowData.patient_code, rowData.study_id)]:
+              rowData.study_id.toString(),
           }));
         } else if (rowData) {
           setSelectedStudies((prev) => {
             const newState = { ...prev };
-            delete newState[rowData.patient_code];
+            delete newState[getRowKey(rowData.patient_code, rowData.study_id)];
             return newState;
           });
         }
@@ -138,7 +131,7 @@ export function DataTable<TData extends Study, TValue>({
         };
       });
     },
-    [data],
+    [data, getRowKey],
   );
 
   const handleRowClick = React.useCallback(
@@ -219,17 +212,6 @@ export function DataTable<TData extends Study, TValue>({
                             Estudios asociados al paciente:
                           </h3>
                           {(() => {
-                            // const relatedStudies = data
-                            // .filter(
-                            //   (study) =>
-                            //     study.patient_code ===
-                            //     row.original.patient_code,
-                            // )
-                            // .sort(
-                            //   (a, b) =>
-                            //     new Date(b.arrived_at).getTime() -
-                            //     new Date(a.arrived_at).getTime(),
-                            // );
                             const relatedStudies = data.filter(
                               (study) =>
                                 study.patient_code ===
@@ -237,13 +219,31 @@ export function DataTable<TData extends Study, TValue>({
                             );
 
                             const currentStudyId =
-                              selectedStudies[row.original.patient_code] ??
-                              row.original.study_id.toString();
+                              selectedStudies[
+                                getRowKey(
+                                  row.original.patient_code,
+                                  row.original.study_id,
+                                )
+                              ] ?? row.original.study_id.toString();
 
-                            if (!selectedStudies[row.original.patient_code]) {
+                            const currentStudy = relatedStudies.find(
+                              (study) => study.study_id === currentStudyId,
+                            );
+
+                            if (
+                              !selectedStudies[
+                                getRowKey(
+                                  row.original.patient_code,
+                                  row.original.study_id,
+                                )
+                              ]
+                            ) {
                               setSelectedStudies((prev) => ({
                                 ...prev,
-                                [row.original.patient_code]: currentStudyId,
+                                [getRowKey(
+                                  row.original.patient_code,
+                                  row.original.study_id,
+                                )]: currentStudyId,
                               }));
                             }
 
@@ -253,7 +253,10 @@ export function DataTable<TData extends Study, TValue>({
                                 onValueChange={(value) => {
                                   setSelectedStudies((prev) => ({
                                     ...prev,
-                                    [row.original.patient_code]: value,
+                                    [getRowKey(
+                                      row.original.patient_code,
+                                      row.original.study_id,
+                                    )]: value,
                                   }));
                                 }}
                                 className="w-full"
@@ -274,7 +277,10 @@ export function DataTable<TData extends Study, TValue>({
                                         if (currentIndex > 0) {
                                           setSelectedStudies((prev) => ({
                                             ...prev,
-                                            [row.original.patient_code]:
+                                            [getRowKey(
+                                              row.original.patient_code,
+                                              row.original.study_id,
+                                            )]:
                                               relatedStudies[
                                                 currentIndex - 1
                                               ]?.study_id.toString() ?? "",
@@ -294,7 +300,10 @@ export function DataTable<TData extends Study, TValue>({
                                       onValueChange={(value) => {
                                         setSelectedStudies((prev) => ({
                                           ...prev,
-                                          [row.original.patient_code]: value,
+                                          [getRowKey(
+                                            row.original.patient_code,
+                                            row.original.study_id,
+                                          )]: value,
                                         }));
                                       }}
                                     >
@@ -318,14 +327,30 @@ export function DataTable<TData extends Study, TValue>({
                                           <SelectItem
                                             key={study.study_id}
                                             value={study.study_id.toString()}
-                                          >
-                                            {new Date(
-                                              study.arrived_at,
-                                            ).toLocaleDateString("es-CL", {
-                                              year: "numeric",
-                                              month: "2-digit",
-                                              day: "2-digit",
+                                            className={cn({
+                                              "bg-muted":
+                                                study.study_id.toString() ===
+                                                currentStudyId,
+                                              "font-bold":
+                                                study.study_id.toString() ===
+                                                row.original.study_id.toString(),
                                             })}
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              {study.study_id.toString() ===
+                                                row.original.study_id.toString() && (
+                                                <span className="text-primary">
+                                                  •
+                                                </span>
+                                              )}
+                                              {new Date(
+                                                study.arrived_at,
+                                              ).toLocaleDateString("es-CL", {
+                                                year: "numeric",
+                                                month: "2-digit",
+                                                day: "2-digit",
+                                              })}
+                                            </div>
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -347,7 +372,10 @@ export function DataTable<TData extends Study, TValue>({
                                         ) {
                                           setSelectedStudies((prev) => ({
                                             ...prev,
-                                            [row.original.patient_code]:
+                                            [getRowKey(
+                                              row.original.patient_code,
+                                              row.original.study_id,
+                                            )]:
                                               relatedStudies[
                                                 currentIndex + 1
                                               ]?.study_id.toString() ?? "",
@@ -388,7 +416,9 @@ export function DataTable<TData extends Study, TValue>({
                                         </span>
                                         <ul className="ml-3 list-inside list-disc">
                                           {study.series?.map((serie) => (
-                                            <li key={serie.id}>{serie.name}</li>
+                                            <li key={serie.series_instance_uid}>
+                                              {serie.series_instance_uid}
+                                            </li>
                                           ))}
                                         </ul>
                                       </li>
@@ -443,33 +473,81 @@ export function DataTable<TData extends Study, TValue>({
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                          {generateRandomLesions().map(
-                                            (lesion, index) => (
-                                              <TableRow key={index}>
-                                                <TableCell>
-                                                  {lesion.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {lesion.organ}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {lesion.volume}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {lesion.axialDiameter}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {lesion.majorDiameter}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {lesion.target}
-                                                </TableCell>
-                                                <TableCell>
-                                                  {lesion.type}
-                                                </TableCell>
-                                              </TableRow>
-                                            ),
-                                          )}
+                                          {(() => {
+                                            const segments =
+                                              currentStudy?.series?.[0]
+                                                ?.segmentations?.[0]
+                                                ?.segments ?? [];
+                                            return segments
+                                              .sort((a, b) => {
+                                                // Sort by classification: Target first, then Non-Target, then New
+                                                const classificationOrder = {
+                                                  Target: 0,
+                                                  "Non-Target": 1,
+                                                  "New Lesion": 2,
+                                                };
+
+                                                const aOrder =
+                                                  classificationOrder[
+                                                    a.lession_classification as keyof typeof classificationOrder
+                                                  ] ?? 3;
+                                                const bOrder =
+                                                  classificationOrder[
+                                                    b.lession_classification as keyof typeof classificationOrder
+                                                  ] ?? 3;
+
+                                                return aOrder - bOrder;
+                                              })
+                                              .map((segment) => (
+                                                <TableRow key={segment.id}>
+                                                  <TableCell>
+                                                    {segment.name}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {affectedOrgansLabels[
+                                                      segment.affected_organs
+                                                    ] ??
+                                                      segment.affected_organs}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {(
+                                                      segment.volume / 1000
+                                                    ).toFixed(2)}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {segment.axial_diameter ??
+                                                      "N/A"}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {segment.sagittal_diameter ??
+                                                      "N/A"}
+                                                  </TableCell>
+                                                  <TableCell className="flex items-center gap-2">
+                                                    {segment.lession_classification ===
+                                                    "Target" ? (
+                                                      <>
+                                                        <CrosshairIcon className="h-4 w-4 text-primary" />
+                                                        Objetivo
+                                                      </>
+                                                    ) : segment.lession_classification ===
+                                                      "Non-Target" ? (
+                                                      <>
+                                                        <Circle className="h-4 w-4 text-muted-foreground" />
+                                                        No objetivo
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <CircleDashed className="h-4 w-4 text-destructive" />
+                                                        Nueva
+                                                      </>
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell>
+                                                    {segment.lession_type}
+                                                  </TableCell>
+                                                </TableRow>
+                                              ));
+                                          })()}
                                         </TableBody>
                                       </Table>
                                     </div>

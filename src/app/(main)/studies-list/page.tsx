@@ -10,8 +10,6 @@ export default async function StudiesListPage() {
 
   const medicalChecks = await api.medicalCheck.getAllPublic.query();
 
-  console.log("medicalChecks", medicalChecks);
-
   const studies = medicalChecks
     .reduce((acc: Study[], medicalCheck) => {
       medicalCheck.studies.forEach((study) => {
@@ -19,22 +17,77 @@ export default async function StudiesListPage() {
           study_id: study.id,
           study_uuid: study.uuid,
           study_name: study.name,
-          study_status:
-            study.uuid === "1.3.51.0.1.1.172.19.3.128.2882759.2882698"
-              ? "200"
-              : study.status
-                ? study.status.toString()
-                : "null",
+          study_status: study.status,
           patient_code: medicalCheck.code,
           arrived_at: study.arrived_at ?? "",
           segmentation_loaded_at: study.segmentation_loaded_at ?? "",
-          series: study.series,
+          series: study.series.map((series) => ({
+            series_instance_uid: series.series_instance_uid,
+            segmentations: series.segmentations.map((segmentation) => ({
+              id: segmentation.id,
+              created_at: segmentation.created_at,
+              updated_at: segmentation.updated_at,
+              is_deleted: segmentation.is_deleted,
+              name: segmentation.name,
+              segmentation_id: segmentation.segmentation_id,
+              orthanc_id: segmentation.orthanc_id,
+              status: segmentation.status,
+              series_instance_uid: segmentation.series_instance_uid,
+              series: segmentation.series,
+              segments: segmentation.segments.map((segment) => ({
+                id: segment.id,
+                created_at: segment.created_at,
+                updated_at: segment.updated_at,
+                is_deleted: segment.is_deleted,
+                name: segment.name,
+                label: segment.label,
+                tracking_id: segment.tracking_id,
+                affected_organs: segment.affected_organs,
+                volume: segment.volume,
+                axial_diameter: segment.axial_diameter,
+                coronal_diameter: segment.coronal_diameter,
+                sagittal_diameter: segment.sagittal_diameter,
+                lession_classification: segment.lession_classification,
+                lession_type: segment.lession_type,
+                segmentation_type: segment.segmentation_type,
+                window_width: segment.window_width,
+                window_level: segment.window_level,
+                status: segment.status,
+                lesion_segmentation: segment.lesion_segmentation,
+                user: segment.user,
+                reviewed_by: segment.reviewed_by,
+                model: segment.model,
+                lesion_segments: segment.lesion_segments,
+              })),
+            })),
+          })),
+          is_basal: study.is_basal,
+          related_studies_ids: study.related_studies_ids,
         });
       });
       return acc;
     }, [])
     .sort((a, b) => {
-      return a.study_status === "200" ? -1 : 1;
+      // First, prioritize not_reviewed studies
+      if (
+        a.study_status === "not_reviewed" &&
+        b.study_status !== "not_reviewed"
+      )
+        return -1;
+      if (
+        a.study_status !== "not_reviewed" &&
+        b.study_status === "not_reviewed"
+      )
+        return 1;
+
+      // Then sort by basal status
+      if (a.is_basal && !b.is_basal) return -1;
+      if (!a.is_basal && b.is_basal) return 1;
+
+      // Finally sort by arrival date
+      return (
+        new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime()
+      );
     });
 
   return (

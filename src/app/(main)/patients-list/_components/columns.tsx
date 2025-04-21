@@ -3,29 +3,79 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { DataTableColumnHeader } from "./data-table-column-header";
-import { DataTableRowActions } from "./data-table-row-actions";
-import { CircleHelp } from "lucide-react";
+import { statusesTypes } from "../types/statuses-types";
+import { CircleX } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type Study = {
-  id: number;
-  uuid: string;
-  name: string;
-  status: number | null;
+  study_id: string;
+  study_uuid: string;
+  study_name: string;
+  study_status:
+    | "created"
+    | "processing"
+    | "partially_processed"
+    | "failed"
+    | "error"
+    | "fully_processed"
+    | "reviewed"
+    | "not_reviewed";
   arrived_at: string;
-  segmentation_loaded_at: string;
-  series: {
-    id: number;
-    name: string;
-    uuid: string;
-    status: number;
-    orthanc_uuid: string;
-  }[];
+  segmentation_loaded_at: string | null;
+  series: Array<{
+    series_instance_uid: string;
+    segmentations: Array<{
+      id: string;
+      created_at: string;
+      updated_at: string;
+      is_deleted: boolean;
+      name: string;
+      segmentation_id: string | null;
+      orthanc_id: string;
+      status: string;
+      series_instance_uid: string;
+      series: string;
+      segments: Array<{
+        id: string;
+        created_at: string;
+        updated_at: string;
+        is_deleted: boolean;
+        name: string;
+        label: string;
+        tracking_id: string;
+        affected_organs: string;
+        volume: number;
+        axial_diameter: number | null;
+        coronal_diameter: number | null;
+        sagittal_diameter: number | null;
+        lession_classification: string;
+        lession_type: string;
+        segmentation_type: string;
+        window_width: number | null;
+        window_level: number | null;
+        status: string;
+        lesion_segmentation: string;
+        user: string | null;
+        reviewed_by: string | null;
+        model: string | null;
+        lesion_segments: string[];
+      }>;
+    }>;
+  }>;
+  is_basal: boolean;
+  related_studies_ids: string[];
 };
 
 export type Patient = {
   patient_code: string;
   studies: Study[];
 };
+
+function getAccessionNumber(studyUuid: string): string {
+  if (!studyUuid) return "";
+  const parts = studyUuid.split(".");
+  return parts[parts.length - 2] || "";
+}
 
 export const columns: ColumnDef<Patient>[] = [
   {
@@ -69,7 +119,15 @@ export const columns: ColumnDef<Patient>[] = [
       if (!latestStudy) return <div>-</div>;
 
       const date = new Date(latestStudy.arrived_at);
-      return <div>{date.toLocaleString("sv-SE", { timeZone: "UTC" })}</div>;
+      return (
+        <div>
+          {date.toLocaleDateString("es-CL", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })}
+        </div>
+      );
     },
   },
   {
@@ -80,13 +138,48 @@ export const columns: ColumnDef<Patient>[] = [
     cell: ({ row }) => {
       const studies: Study[] = row.getValue("studies");
       const pendingStudies = studies.filter(
-        (study) => study.status === null || study.status === 400,
+        (study) =>
+          study.study_status === "not_reviewed" ||
+          study.study_status === "created" ||
+          study.study_status === "processing",
       );
+
+      const status = statusesTypes.find(
+        (status) => status.value === "not_reviewed",
+      );
+
+      if (!status) {
+        return (
+          <Badge variant="outline">
+            <CircleX className="mr-2 h-4 w-4" />
+            {pendingStudies.length}
+          </Badge>
+        );
+      }
+
       return (
-        <Badge variant="outline">
-          <CircleHelp className="mr-2 h-4 w-4" />
-          {pendingStudies.length}
-        </Badge>
+        <div className="flex items-center">
+          <Badge
+            variant={status.variant}
+            className={cn(
+              status.color === "warning" && "border-yellow-500",
+              status.color === "default" && "border",
+              status.color === "success" && "border-green-500",
+            )}
+          >
+            {status.icon && (
+              <status.icon
+                className={cn(
+                  "mr-2 h-4 w-4",
+                  status.color === "warning" && "text-yellow-500",
+                  status.color === "default" && "text-muted-foreground",
+                  status.color === "success" && "text-green-500",
+                )}
+              />
+            )}
+            {pendingStudies.length}
+          </Badge>
+        </div>
       );
     },
   },
