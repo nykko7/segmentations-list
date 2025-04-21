@@ -343,14 +343,25 @@ function extractLesionData(studies: Study[]): LesionMeasurements {
   studies.forEach((study) => {
     sumByStudy[study.study_id] = 0;
     targetLesionsMap.forEach((lesion) => {
-      if (lesion.measurements[study.study_id]) {
-        sumByStudy[study.study_id] += lesion.measurements[study.study_id];
+      if (
+        lesion.measurements &&
+        study.study_id &&
+        lesion.measurements[study.study_id] !== undefined
+      ) {
+        const studyId = study.study_id;
+        if (sumByStudy[studyId] !== undefined) {
+          const currentSum = sumByStudy[studyId];
+          const measurementValue = lesion.measurements[studyId] ?? 0;
+          sumByStudy[studyId] = currentSum + measurementValue;
+        }
       }
     });
     // Format the sum to 2 decimal places
-    sumByStudy[study.study_id] = parseFloat(
-      sumByStudy[study.study_id].toFixed(2),
-    );
+    if (study.study_id && sumByStudy[study.study_id!] !== undefined) {
+      sumByStudy[study.study_id!] = parseFloat(
+        sumByStudy[study.study_id!]!.toFixed(2),
+      );
+    }
   });
 
   return {
@@ -723,7 +734,9 @@ export function DataTable<TData extends Patient, TValue>({
                                                       s.study_id.toString(),
                                                   })}
                                                 >
-                                                  {lesion.measurements[
+                                                  {lesion.measurements &&
+                                                  s.study_id &&
+                                                  lesion.measurements[
                                                     s.study_id
                                                   ] !== undefined &&
                                                   lesion.measurements[
@@ -731,7 +744,7 @@ export function DataTable<TData extends Patient, TValue>({
                                                   ] !== 0
                                                     ? lesion.measurements[
                                                         s.study_id
-                                                      ].toFixed(2)
+                                                      ]!.toFixed(2)
                                                     : "-"}
                                                 </TableCell>
                                               ))}
@@ -752,15 +765,18 @@ export function DataTable<TData extends Patient, TValue>({
                                               })}
                                             >
                                               {lesionMeasurements[row.id]
+                                                ?.sumByStudy &&
+                                              s.study_id &&
+                                              lesionMeasurements[row.id]
                                                 ?.sumByStudy[s.study_id] !==
                                                 undefined &&
                                               lesionMeasurements[row.id]
                                                 ?.sumByStudy[s.study_id] !== 0
                                                 ? lesionMeasurements[
                                                     row.id
-                                                  ]?.sumByStudy[
+                                                  ]!.sumByStudy[
                                                     s.study_id
-                                                  ].toFixed(2)
+                                                  ]!.toFixed(2)
                                                 : "-"}
                                             </TableCell>
                                           ))}
@@ -828,7 +844,9 @@ export function DataTable<TData extends Patient, TValue>({
                                                       s.study_id.toString(),
                                                   })}
                                                 >
-                                                  {lesion.measurements[
+                                                  {lesion.measurements &&
+                                                  s.study_id &&
+                                                  lesion.measurements[
                                                     s.study_id
                                                   ] !== undefined &&
                                                   lesion.measurements[
@@ -836,7 +854,7 @@ export function DataTable<TData extends Patient, TValue>({
                                                   ] !== 0
                                                     ? lesion.measurements[
                                                         s.study_id
-                                                      ].toFixed(2)
+                                                      ]!.toFixed(2)
                                                     : "-"}
                                                 </TableCell>
                                               ))}
@@ -901,7 +919,9 @@ export function DataTable<TData extends Patient, TValue>({
                                                     s.study_id.toString(),
                                                 })}
                                               >
-                                                {lesion.measurements[
+                                                {lesion.measurements &&
+                                                s.study_id &&
+                                                lesion.measurements[
                                                   s.study_id
                                                 ] !== undefined &&
                                                 lesion.measurements[
@@ -909,7 +929,7 @@ export function DataTable<TData extends Patient, TValue>({
                                                 ] !== 0
                                                   ? lesion.measurements[
                                                       s.study_id
-                                                    ].toFixed(2)
+                                                    ]!.toFixed(2)
                                                   : "-"}
                                               </TableCell>
                                             ))}
