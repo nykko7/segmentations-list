@@ -4,7 +4,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { statusesTypes } from "../types/statuses-types";
-import { CircleX } from "lucide-react";
+import { CircleX, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Study = {
@@ -104,11 +104,8 @@ export const columns: ColumnDef<Study>[] = [
     id: "study_uuid",
     accessorKey: "study_uuid",
     enableHiding: true,
-    enableSorting: true,
     enableColumnFilter: true,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Accession number" />
-    ),
+    header: "Accession number",
     cell: ({ row }) => {
       const accessionNumber = getAccessionNumber(row.getValue("study_uuid"));
       return <div>{accessionNumber}</div>;
@@ -129,7 +126,10 @@ export const columns: ColumnDef<Study>[] = [
   // },
   {
     accessorKey: "arrived_at",
-    header: "Fecha de recepción",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Fecha de recepción" />
+    ),
+    enableSorting: true,
     cell: ({ row }) => {
       const date = new Date(row.original.arrived_at);
       return date.toLocaleDateString("es-CL", {
@@ -141,7 +141,9 @@ export const columns: ColumnDef<Study>[] = [
   },
   {
     accessorKey: "segmentation_loaded_at",
-    header: "Fecha de segmentación",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Fecha de segmentación" />
+    ),
     cell: ({ row }) => {
       if (!row.original.segmentation_loaded_at) return "Pendiente";
       const date = new Date(row.original.segmentation_loaded_at);

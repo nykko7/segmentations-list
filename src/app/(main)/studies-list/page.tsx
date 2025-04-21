@@ -80,9 +80,9 @@ export default async function StudiesListPage() {
       )
         return 1;
 
-      // Then sort by basal status
-      if (a.is_basal && !b.is_basal) return -1;
-      if (!a.is_basal && b.is_basal) return 1;
+      // // Then sort by basal status
+      // if (a.is_basal && !b.is_basal) return -1;
+      // if (!a.is_basal && b.is_basal) return 1;
 
       // Finally sort by arrival date
       return (

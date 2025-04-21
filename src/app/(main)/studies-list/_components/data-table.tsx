@@ -515,12 +515,14 @@ export function DataTable<TData extends Study, TValue>({
                                                     ).toFixed(2)}
                                                   </TableCell>
                                                   <TableCell>
-                                                    {segment.axial_diameter ??
-                                                      "N/A"}
+                                                    {segment.axial_diameter?.toFixed(
+                                                      2,
+                                                    ) ?? "N/A"}
                                                   </TableCell>
                                                   <TableCell>
-                                                    {segment.sagittal_diameter ??
-                                                      "N/A"}
+                                                    {segment.sagittal_diameter?.toFixed(
+                                                      2,
+                                                    ) ?? "N/A"}
                                                   </TableCell>
                                                   <TableCell className="flex items-center gap-2">
                                                     {segment.lession_classification ===
