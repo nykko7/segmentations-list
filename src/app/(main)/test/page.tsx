@@ -58,7 +58,7 @@ const TestPage = async () => {
                   </div>
                 </li>
               ))}
-              <SetRolesButton userId={user.id!} userRoles={userRoles} />
+              {/* <SetRolesButton userId={user.id!} userRoles={userRoles} /> */}
             </ul>
           </div>
         </div>
