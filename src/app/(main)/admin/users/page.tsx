@@ -1,8 +1,8 @@
 import { api } from "@/trpc/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { PageHeader } from "../../_components/PageHeader";
-import { columns } from "./_components/table/Columns";
-import { DataTable } from "./_components/table/DataTable";
+import { columns } from "./_components/Table/Columns";
+import { DataTable } from "./_components/Table/DataTable";
 import NewUserModal from "./_components/UserModal";
 
 export default async function UsersListPage() {
