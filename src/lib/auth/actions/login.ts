@@ -88,10 +88,14 @@ export const login = async (
 
   const sessionCookie = lucia.createSessionCookie(session.id);
 
-  cookies().set(
+  // eslint-disable-next-line @typescript-eslint/await-thenable
+  const cookiesStore = await cookies();
+
+  cookiesStore.set(
     sessionCookie.name,
     sessionCookie.value,
     sessionCookie.attributes,
   );
+
   return redirect(callbackUrl ?? redirects.afterLogin);
 };

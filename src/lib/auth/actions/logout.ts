@@ -25,7 +25,10 @@ export const logout = async ({ redirectTo }: { redirectTo?: string }) => {
   // await invalidateToken(session.keycloak.accessToken);
   const sessionCookie = lucia.createBlankSessionCookie();
 
-  cookies().set(
+  // eslint-disable-next-line @typescript-eslint/await-thenable
+  const cookiesStore = await cookies();
+
+  cookiesStore.set(
     sessionCookie.name,
     sessionCookie.value,
     sessionCookie.attributes,

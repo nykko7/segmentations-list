@@ -9,17 +9,21 @@ import { cache } from "react";
 export const uncachedValidateRequest = async (): Promise<
   { user: User; session: Session } | { user: null; session: null }
 > => {
-  const sessionId = cookies().get(lucia.sessionCookieName)?.value ?? null;
+  // eslint-disable-next-line @typescript-eslint/await-thenable
+  const cookiesStore = await cookies();
+
+  const sessionId = cookiesStore.get(lucia.sessionCookieName)?.value ?? null;
   if (!sessionId) {
     return { user: null, session: null };
   }
   const result = await lucia.validateSession(sessionId);
   // next.js throws when you attempt to set cookie when rendering page
-
   try {
-    if (result.session && result.session.fresh) {
+    if (result.session?.fresh) {
       const sessionCookie = lucia.createSessionCookie(result.session.id);
-      cookies().set(
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      const cookiesStore = await cookies();
+      cookiesStore.set(
         sessionCookie.name,
         sessionCookie.value,
         sessionCookie.attributes,
@@ -27,7 +31,9 @@ export const uncachedValidateRequest = async (): Promise<
     }
     if (!result.session) {
       const sessionCookie = lucia.createBlankSessionCookie();
-      cookies().set(
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      const cookiesStore = await cookies();
+      cookiesStore.set(
         sessionCookie.name,
         sessionCookie.value,
         sessionCookie.attributes,

@@ -3,7 +3,7 @@ import { invalidateToken } from "@/lib/auth/keycloak/utils";
 import { type UserRole } from "@/server/db/schema";
 import KcAdminClient from "@keycloak/keycloak-admin-client";
 import type UserRepresentation from "@keycloak/keycloak-admin-client/lib/defs/userRepresentation";
-import { SetRolesButton } from "./_components/set-roles-button";
+// import { SetRolesButton } from "./_components/set-roles-button";
 
 // force dynamic
 export const dynamic = "force-dynamic";
