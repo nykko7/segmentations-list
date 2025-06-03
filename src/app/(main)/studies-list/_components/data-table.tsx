@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   type ColumnDef,
@@ -61,19 +62,58 @@ export function DataTable<TData extends Study, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  // Get the accession number from URL if it exists
+  const searchParams = useSearchParams();
+  const urlAccessionNumber = searchParams.get("AccessionNumber") || "";
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({
       patient_code: false,
       study_id: false,
     });
+  // Initialize column filters with accession number from URL if present
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
+    urlAccessionNumber
+      ? [
+          {
+            id: "study_uuid",
+            value: urlAccessionNumber,
+          },
+        ]
+      : [],
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  // Effect to initialize expandedRows when data changes and URL has accessionNumber
   const [expandedRows, setExpandedRows] = React.useState<
     Record<string, boolean>
   >({});
+
+  // Auto-expand rows when filtered by accession number
+  React.useEffect(() => {
+    if (urlAccessionNumber && data.length > 0) {
+      // Find matching rows and expand them
+      const newExpandedRows: Record<string, boolean> = {};
+
+      data.forEach((study, index) => {
+        // If the study UUID or ID matches the accession number, expand the row
+        if (
+          study.study_uuid
+            ?.toLowerCase()
+            .includes(urlAccessionNumber.toLowerCase()) ||
+          study.study_id
+            ?.toLowerCase()
+            .includes(urlAccessionNumber.toLowerCase())
+        ) {
+          newExpandedRows[index] = true;
+        }
+      });
+
+      // Only update if we found matches
+      if (Object.keys(newExpandedRows).length > 0) {
+        setExpandedRows(newExpandedRows);
+      }
+    }
+  }, [data, urlAccessionNumber]);
   const [selectedStudies, setSelectedStudies] = React.useState<
     Record<string, string>
   >({});
@@ -417,7 +457,9 @@ export function DataTable<TData extends Study, TValue>({
                                         <ul className="ml-3 list-inside list-disc">
                                           {study.series?.map((serie) => (
                                             <li key={serie.series_instance_uid}>
-                                              {serie.series_instance_uid}
+                                              {serie.series_name
+                                                ? `${serie.series_name} (${serie.body_region}) - ${serie.series_instance_uid}`
+                                                : serie.series_instance_uid}
                                             </li>
                                           ))}
                                         </ul>

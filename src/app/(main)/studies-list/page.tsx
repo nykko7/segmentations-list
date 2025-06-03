@@ -1,18 +1,42 @@
 import { unstable_noStore as noStore } from "next/cache";
+import { parseAsString, createLoader } from "nuqs/server";
 
 import { api } from "@/trpc/server";
 import { PageHeader } from "../_components/PageHeader";
 import { columns, type Study } from "./_components/columns";
 import { DataTable } from "./_components/data-table";
 
-export default async function StudiesListPage() {
+export default async function StudiesListPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   noStore();
 
-  const medicalChecks = await api.medicalCheck.getAllPublic.query();
+  // Parse the AccessionNumber from the URL query parameters
+  const searchParamsConfig = {
+    AccessionNumber: parseAsString.withDefault(""),
+  };
+  const loadSearchParams = createLoader(searchParamsConfig);
+  const { AccessionNumber: accessionNumber } =
+    await loadSearchParams(searchParams);
+
+  const medicalChecks = await api.medicalCheck.getAllPublic.query({
+    accessionNumber: accessionNumber || undefined,
+  });
 
   const studies = medicalChecks
     .reduce((acc: Study[], medicalCheck) => {
-      medicalCheck.studies.forEach((study) => {
+      // Filter studies if accessionNumber is provided
+      const studiesToProcess = accessionNumber
+        ? medicalCheck.studies.filter(
+            (study) =>
+              study.id.toLowerCase().includes(accessionNumber.toLowerCase()) ||
+              study.uuid?.toLowerCase().includes(accessionNumber.toLowerCase()),
+          )
+        : medicalCheck.studies;
+
+      studiesToProcess.forEach((study) => {
         acc.push({
           study_id: study.id,
           study_uuid: study.uuid,
@@ -23,6 +47,8 @@ export default async function StudiesListPage() {
           segmentation_loaded_at: study.segmentation_loaded_at ?? "",
           series: study.series.map((series) => ({
             series_instance_uid: series.series_instance_uid,
+            series_name: series.series_name,
+            body_region: series.body_region,
             segmentations: series.segmentations.map((segmentation) => ({
               id: segmentation.id,
               created_at: segmentation.created_at,

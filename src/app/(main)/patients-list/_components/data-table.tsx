@@ -49,20 +49,6 @@ interface DataTableProps<TData extends Patient, TValue> {
   data: TData[];
 }
 
-type LesionData = {
-  id: string;
-  name: string;
-  label: string;
-  affected_organs: string;
-  volume: number;
-  axial_diameter: number | null;
-  coronal_diameter: number | null;
-  sagittal_diameter: number | null;
-  lession_classification: string;
-  lession_type: string;
-  segmentation_type: string;
-};
-
 type LesionMeasurements = {
   targetLesions: {
     id: string;
@@ -650,7 +636,9 @@ export function DataTable<TData extends Patient, TValue>({
                                     <ul className="ml-3 list-inside list-disc">
                                       {study.series?.map((serie) => (
                                         <li key={serie.series_instance_uid}>
-                                          {serie.series_instance_uid}
+                                          {serie.series_name
+                                            ? `${serie.series_name} (${serie.body_region}) - ${serie.series_instance_uid}`
+                                            : serie.series_instance_uid}
                                         </li>
                                       ))}
                                     </ul>

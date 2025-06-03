@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { type Table } from "@tanstack/react-table";
+import { useRouter, usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,8 @@ interface DataTableToolbarProps<TData> {
 export function DataTableToolbar<TData>({
   table,
 }: DataTableToolbarProps<TData>) {
+  const router = useRouter();
+  const pathname = usePathname();
   const isFiltered = table.getState().columnFilters.length > 0;
 
   const studyUuidColumn = table.getColumn("study_uuid");
@@ -55,7 +58,13 @@ export function DataTableToolbar<TData>({
         {isFiltered && (
           <Button
             variant="ghost"
-            onClick={() => table.resetColumnFilters()}
+            onClick={() => {
+              // Reset the table filters
+              table.resetColumnFilters();
+              
+              // Also update the URL to remove the AccessionNumber parameter
+              router.push(pathname);
+            }}
             className="h-8 px-2 lg:px-3"
           >
             Limpiar

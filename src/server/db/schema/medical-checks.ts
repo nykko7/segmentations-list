@@ -31,6 +31,8 @@ export type MedicalCheck = {
     segmentation_loaded_at?: string | null;
     series: Array<{
       series_instance_uid: string;
+      series_name: string;
+      body_region: string;
       segmentations: Array<{
         id: string;
         created_at: string;
