@@ -31,6 +31,8 @@ export default async function PatientsListPage() {
       segmentation_loaded_at: study.segmentation_loaded_at ?? null,
       series: study.series.map((series) => ({
         series_instance_uid: series.series_instance_uid,
+        series_name: series.series_name,
+        body_region: series.body_region,
         segmentations: series.segmentations.map((segmentation) => ({
           id: segmentation.id,
           created_at: segmentation.created_at,
