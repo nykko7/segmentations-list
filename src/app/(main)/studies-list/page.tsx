@@ -6,20 +6,19 @@ import { PageHeader } from "../_components/PageHeader";
 import { columns, type Study } from "./_components/columns";
 import { DataTable } from "./_components/data-table";
 
-export default async function StudiesListPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default async function StudiesListPage(props: {
+  searchParams?: Promise<{ query?: string }>;
 }) {
   noStore();
+
+  const searchParams = (await props.searchParams) ?? {};
 
   // Parse the AccessionNumber from the URL query parameters
   const searchParamsConfig = {
     AccessionNumber: parseAsString.withDefault(""),
   };
   const loadSearchParams = createLoader(searchParamsConfig);
-  const { AccessionNumber: accessionNumber } =
-    await loadSearchParams(searchParams);
+  const { AccessionNumber: accessionNumber } = loadSearchParams(searchParams);
 
   const medicalChecks = await api.medicalCheck.getAllPublic.query({
     accessionNumber: accessionNumber || undefined,
