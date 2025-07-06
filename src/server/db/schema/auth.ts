@@ -1,9 +1,15 @@
 // export type UserRoles = "USER" | "ADMIN" | "RADIOLOGIST" | "ML_ENGINEER";
 
 import { relations } from "drizzle-orm";
-import { index, json, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  index,
+  json,
+  pgTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { createTable } from "../utils";
 
 export type UserRole = "ADMIN" | "RADIOLOGIST" | "ML_ENGINEER";
 
@@ -27,7 +33,7 @@ const rolesParams = z.object({
   fixed: z.boolean().optional(),
 });
 
-export const users = createTable(
+export const users = pgTable(
   "user",
   {
     id: text("id").primaryKey(),
@@ -42,9 +48,7 @@ export const users = createTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => ({
-    emailIdx: index("email_idx").on(t.email),
-  }),
+  (t) => [index("email_idx").on(t.email)],
 );
 
 // export const usersRelations = relations(users, ({ many }) => ({
@@ -54,7 +58,7 @@ export const users = createTable(
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
-export const keys = createTable("key", {
+export const keys = pgTable("key", {
   id: varchar("id", {
     length: 255,
   }).primaryKey(),
@@ -72,7 +76,7 @@ export const keysRelations = relations(keys, ({ one }) => ({
   user: one(users, { fields: [keys.userId], references: [users.id] }),
 }));
 
-export const sessions = createTable(
+export const sessions = pgTable(
   "session",
   {
     id: text("id").primaryKey(),
@@ -85,9 +89,7 @@ export const sessions = createTable(
     }).notNull(),
     keycloak: json("keycloak").notNull().default({}),
   },
-  (t) => ({
-    userIdx: index("user_idx").on(t.userId),
-  }),
+  (t) => [index("user_idx").on(t.userId)],
 );
 
 export const userLoginSchema = z.object({
@@ -220,7 +222,7 @@ export const userProfileParamsSchema = userProfileBaseSchema
       roles: z.array(rolesParams).min(1, "Debes seleccionar al menos un rol"),
     }),
   )
-  .superRefine(({ password, newPassword, confirmNewPassword, roles }, ctx) => {
+  .superRefine(({ password, newPassword, confirmNewPassword }, ctx) => {
     if (password && !newPassword) {
       ctx.addIssue({
         code: "custom",

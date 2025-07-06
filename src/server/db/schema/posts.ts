@@ -1,8 +1,13 @@
 import { sql } from "drizzle-orm";
-import { index, serial, timestamp, varchar } from "drizzle-orm/pg-core";
-import { createTable } from "../utils";
+import {
+  index,
+  pgTable,
+  serial,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 
-export const posts = createTable(
+export const posts = pgTable(
   "post",
   {
     id: serial("id").primaryKey(),
@@ -12,7 +17,5 @@ export const posts = createTable(
       .notNull(),
     updatedAt: timestamp("updatedAt"),
   },
-  (example) => ({
-    nameIndex: index("name_idx").on(example.name),
-  }),
+  (t) => [index("name_idx").on(t.name)],
 );

@@ -9,5 +9,5 @@ export default {
   dbCredentials: {
     url: env.DATABASE_URL,
   },
-  tablesFilter: ["segmentations-list_*"],
+  // tablesFilter: ["segmentations-list_*"],
 } satisfies Config;
