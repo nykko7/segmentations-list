@@ -9,7 +9,7 @@ set -euo pipefail
 trap 'echo "Error on line $LINENO: Command: $BASH_COMMAND. Exit code: $?"' ERR
 
 echo "Step 1: Stopping current process..."
-pm2 delete segmentations-list || true
+pm2 delete segmentations_list || true
 
 echo "Step 2: Pulling latest changes..."
 sudo git pull
@@ -24,6 +24,6 @@ echo "Step 4: Building project..."
 pnpm build
 
 echo "Step 5: Starting with PM2..."
-pm2 start --name "segmentations-list" pnpm -- start
+pm2 start --name "segmentations_list" pnpm -- start
 
 echo "Update process completed successfully!"
