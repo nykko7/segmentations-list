@@ -128,36 +128,63 @@ export const registerUser = async (
     realmName: env.KEYCLOAK_REALM,
   });
 
-  await keycloakAdmin.auth({
-    username: env.KEYCLOAK_ADMIN_USERNAME,
-    password: env.KEYCLOAK_ADMIN_PASSWORD,
-    grantType: "password",
-    clientId: env.KEYCLOAK_CLIENT_ID,
-    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
-    scopes: ["openid"],
-  });
+  try {
+    await keycloakAdmin.auth({
+      username: env.KEYCLOAK_ADMIN_USERNAME,
+      password: env.KEYCLOAK_ADMIN_PASSWORD,
+      grantType: "password",
+      clientId: env.KEYCLOAK_CLIENT_ID,
+      clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+      scopes: ["openid"],
+    });
 
-  const newUser = await keycloakAdmin.users.create({
-    username,
-    email,
-    enabled: true,
-    firstName,
-    lastName,
-    emailVerified: true,
-    credentials: [
-      {
-        type: "password",
-        value: password,
-        temporary: false,
-      },
-    ],
-  });
+    console.log("Keycloak admin authenticated successfully for user creation");
+    console.log("Creating user:", { username, email, firstName, lastName });
 
-  await setUserRoles(newUser.id, roles ?? []);
+    const newUser = await keycloakAdmin.users.create({
+      username,
+      email,
+      enabled: true,
+      firstName,
+      lastName,
+      emailVerified: true,
+      credentials: [
+        {
+          type: "password",
+          value: password,
+          temporary: false,
+        },
+      ],
+    });
 
-  await invalidateToken(keycloakAdmin.refreshToken!);
+    console.log("User created successfully:", newUser);
 
-  return newUser;
+    await setUserRoles(newUser.id, roles ?? []);
+
+    await invalidateToken(keycloakAdmin.refreshToken!);
+
+    return newUser;
+  } catch (error) {
+    console.error("Error in registerUser:", error);
+    console.error("Failed to create user in Keycloak:", {
+      username,
+      email,
+      baseUrl: env.KEYCLOAK_SERVER_URL,
+      realm: env.KEYCLOAK_REALM,
+      clientId: env.KEYCLOAK_CLIENT_ID,
+      adminUsername: env.KEYCLOAK_ADMIN_USERNAME,
+    });
+
+    if (keycloakAdmin.refreshToken) {
+      try {
+        await invalidateToken(keycloakAdmin.refreshToken);
+      } catch (invalidateError) {
+        console.error("Error invalidating token:", invalidateError);
+      }
+    }
+
+    throw error; // Re-throw since user creation is critical
+  }
 };
 
 // get user by email
@@ -169,22 +196,49 @@ export const getUserByEmail = async (email: string) => {
     realmName: env.KEYCLOAK_REALM,
   });
 
-  await keycloakAdmin.auth({
-    username: env.KEYCLOAK_ADMIN_USERNAME,
-    password: env.KEYCLOAK_ADMIN_PASSWORD,
-    grantType: "password",
-    clientId: env.KEYCLOAK_CLIENT_ID,
-    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
-    scopes: ["openid"],
-  });
+  try {
+    await keycloakAdmin.auth({
+      username: env.KEYCLOAK_ADMIN_USERNAME,
+      password: env.KEYCLOAK_ADMIN_PASSWORD,
+      grantType: "password",
+      clientId: env.KEYCLOAK_CLIENT_ID,
+      clientSecret: env.KEYCLOAK_CLIENT_SECRET,
+      scopes: ["openid"],
+    });
 
-  const user = await keycloakAdmin.users.find({
-    email,
-  });
+    console.log("Keycloak admin authenticated successfully");
+    console.log("Searching for user with email:", email);
 
-  await invalidateToken(keycloakAdmin.refreshToken!);
+    const user = await keycloakAdmin.users.find({
+      email,
+    });
 
-  return user[0] ?? null;
+    console.log("User search result:", user);
+
+    await invalidateToken(keycloakAdmin.refreshToken!);
+
+    return user[0] ?? null;
+  } catch (error) {
+    console.error("Error in getUserByEmail:", error);
+    console.error("Keycloak config:", {
+      baseUrl: env.KEYCLOAK_SERVER_URL,
+      realm: env.KEYCLOAK_REALM,
+      clientId: env.KEYCLOAK_CLIENT_ID,
+      adminUsername: env.KEYCLOAK_ADMIN_USERNAME,
+    });
+
+    // Don't throw the error, return null instead to allow registration to continue
+    // but log the issue for debugging
+    if (keycloakAdmin.refreshToken) {
+      try {
+        await invalidateToken(keycloakAdmin.refreshToken);
+      } catch (invalidateError) {
+        console.error("Error invalidating token:", invalidateError);
+      }
+    }
+
+    return null;
+  }
 };
 
 export const deleteUser = async (userId: string) => {

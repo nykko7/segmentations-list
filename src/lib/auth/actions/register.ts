@@ -34,12 +34,21 @@ export const register = async (values: z.infer<typeof userRegisterSchema>) => {
     }
   }
 
-  const existingUserKc = await getUserByEmail(email);
+  // Check Keycloak for existing user, but don't fail if the check fails
+  try {
+    const existingUserKc = await getUserByEmail(email);
 
-  if (existingUserKc) {
-    return {
-      error: "El usuario ya existe en Keycloak",
-    };
+    if (existingUserKc) {
+      return {
+        error: "El usuario ya existe en Keycloak",
+      };
+    }
+  } catch (error) {
+    console.warn(
+      "Could not check Keycloak for existing user, proceeding with registration:",
+      error,
+    );
+    // Continue with registration even if Keycloak check fails
   }
 
   // const newUserId = generateId(21);
